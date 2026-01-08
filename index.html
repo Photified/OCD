@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Obsessively Compulsed Daily</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <style>
+        .progress-fill { transition: width 3s linear; }
+        .slide-up { animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        .fade-in { animation: fadeIn 0.4s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
+        
+        .ocd-logo {
+            font-size: 7rem;
+            line-height: 0.7;
+            letter-spacing: -0.18em;
+            font-weight: 900;
+            display: inline-block;
+            position: relative;
+            color: #0f172a;
+            font-style: italic;
+        }
+        .ocd-logo .letter-c { color: #4f46e5; position: relative; z-index: 10; }
+        .ocd-logo .letter-d { position: relative; z-index: 5; }
+        
+        .tab-slider-wrapper { 
+            position: relative; 
+            width: 100%;
+            -webkit-mask-image: linear-gradient(to right, transparent 0%, black 40px, black calc(100% - 40px), transparent 100%);
+            mask-image: linear-gradient(to right, transparent 0%, black 40px, black calc(100% - 40px), transparent 100%);
+        }
+
+        .tab-scroll-area {
+            display: flex;
+            overflow-x: auto;
+            overflow-y: hidden;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: 14px;
+            gap: 12px;
+            width: 100%;
+            cursor: grab;
+            user-select: none;
+            padding-left: 24px; 
+            padding-right: 60px;
+        }
+        
+        .tab-scroll-area:active { cursor: grabbing; }
+
+        .tab-scroll-area::-webkit-scrollbar { 
+            height: 6px; 
+            display: block; 
+        }
+        .tab-scroll-area::-webkit-scrollbar-track { 
+            background: #e2e8f0; 
+            border-radius: 10px;
+            margin: 0 40px;
+        }
+        .tab-scroll-area::-webkit-scrollbar-thumb { 
+            background: #475569; 
+            border-radius: 10px; 
+        }
+        
+        .tab-scroll-area {
+            scrollbar-width: thin;
+            scrollbar-color: #475569 #e2e8f0;
+        }
+
+        .sortable-ghost { opacity: 0.3; background: #cbd5e1; }
+        .drag-handle { cursor: grab; padding: 4px; }
+    </style>
+</head>
+<body class="bg-[#FDFDFD] font-sans overflow-x-hidden">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useRef, useEffect } = React;
+
+        const INITIAL_DATA = {
+            "LEAVING": [
+                { id: 'l1', title: 'Phone, Wallet, Keys', completed: false },
+                { id: 'l2', title: 'Turn off light', completed: false },
+                { id: 'l3', title: 'Lock the Door', completed: false },
+                { id: 'l4', title: 'Appliances Off', completed: false }
+            ],
+            "WORKDAY": [
+                { id: 'w1', title: 'Check Email', completed: false },
+                { id: 'w2', title: 'Top 3 Goals Identified', completed: false },
+                { id: 'w3', title: 'Inbox Sweep', completed: false },
+                { id: 'w4', title: 'Shutdown Ritual', completed: false }
+            ],
+            "BEDTIME": [
+                { id: 'b1', title: 'Doors & Windows Locked', completed: false },
+                { id: 'b2', title: 'Kitchen Appliances Off', completed: false },
+                { id: 'b3', title: 'Alarm Set', completed: false },
+                { id: 'b4', title: 'Devices Charging', completed: false }
+            ],
+            "SELF-CARE": [
+                { id: 's1', title: 'Mindful Minute', completed: false },
+                { id: 's2', title: 'Daily Movement', completed: false },
+                { id: 's3', title: 'Vitamins / Meds Taken', completed: false },
+                { id: 's4', title: 'Digital Sunset', completed: false }
+            ]
+        };
+
+        function TaskCard({ task, onComplete, onDelete }) {
+            const [isHolding, setIsHolding] = useState(false);
+            const timerRef = useRef(null);
+
+            const startHold = () => {
+                if (task.completed) return;
+                setIsHolding(true);
+                timerRef.current = setTimeout(() => {
+                    onComplete(task.id, new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+                    setIsHolding(false);
+                    if (navigator.vibrate) navigator.vibrate(40);
+                }, 3000);
+            };
+
+            const cancelHold = () => { setIsHolding(false); clearTimeout(timerRef.current); };
+
+            return (
+                <div data-id={task.id} className="task-item mb-3 p-6 rounded-[2.5rem] border bg-white border-slate-200 shadow-sm transition-all duration-500">
+                    <div className="flex justify-between items-start mb-2 px-1">
+                        <div className="flex items-center gap-4">
+                            <div className="drag-handle text-slate-400 hover:text-indigo-600">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/></svg>
+                            </div>
+                            <div className="flex flex-col">
+                                <span className={`text-lg font-bold ${task.completed ? 'text-slate-400' : 'text-slate-900'}`}>{task.title}</span>
+                                {task.completed && <span className="text-[10px] font-black text-indigo-600 uppercase mt-1">Logged at {task.confirmedAt}</span>}
+                            </div>
+                        </div>
+                        <button onClick={() => onDelete(task.id)} className="text-slate-400 hover:text-red-600 p-1 font-bold">✕</button>
+                    </div>
+                    {!task.completed ? (
+                        <button onMouseDown={startHold} onMouseUp={cancelHold} onMouseLeave={cancelHold} onTouchStart={startHold} onTouchEnd={cancelHold} className="relative w-full py-5 bg-slate-100 rounded-2xl overflow-hidden select-none border border-slate-200">
+                            <div className={`absolute left-0 top-0 h-full bg-indigo-600 opacity-20 ${isHolding ? 'progress-fill' : ''}`} style={{ width: isHolding ? '100%' : '0%' }} />
+                            <span className="relative z-10 text-[11px] font-black uppercase text-slate-600 italic">{isHolding ? 'Confirming...' : 'Hold to Confirm'}</span>
+                        </button>
+                    ) : (
+                        <div className="w-full py-4 bg-indigo-50 border border-indigo-200 rounded-2xl flex items-center justify-center fade-in">
+                            <span className="text-[11px] font-black uppercase text-indigo-700 italic">✓ Memory Stored</span>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        function App() {
+            // Updated version key to ensure the new defaults load over old cache
+            const [collections, setCollections] = useState(() => JSON.parse(localStorage.getItem('ocd_final_v2')) || INITIAL_DATA);
+            const [activeTab, setActiveTab] = useState(Object.keys(collections)[0]);
+            const [showAddTab, setShowAddTab] = useState(false);
+            const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+            const [newTabName, setNewTabName] = useState('');
+            const [text, setText] = useState('');
+            
+            const listRef = useRef(null);
+            const scrollRef = useRef(null);
+
+            useEffect(() => { localStorage.setItem('ocd_final_v2', JSON.stringify(collections)); }, [collections]);
+
+            useEffect(() => {
+                const slider = scrollRef.current;
+                if (!slider) return;
+                let isDown = false;
+                let startX;
+                let scrollLeft;
+
+                const startDragging = (e) => {
+                    isDown = true;
+                    startX = e.pageX - slider.offsetLeft;
+                    scrollLeft = slider.scrollLeft;
+                };
+                const stopDragging = () => isDown = false;
+                const move = (e) => {
+                    if (!isDown) return;
+                    e.preventDefault();
+                    const x = e.pageX - slider.offsetLeft;
+                    const walk = (x - startX) * 2;
+                    slider.scrollLeft = scrollLeft - walk;
+                };
+
+                slider.addEventListener('mousedown', startDragging);
+                window.addEventListener('mouseup', stopDragging);
+                slider.addEventListener('mousemove', move);
+                
+                const onWheel = (e) => {
+                    if (e.deltaY === 0) return;
+                    e.preventDefault();
+                    slider.scrollLeft += e.deltaY;
+                };
+                slider.addEventListener('wheel', onWheel, { passive: false });
+
+                return () => {
+                    slider.removeEventListener('mousedown', startDragging);
+                    window.removeEventListener('mouseup', stopDragging);
+                    slider.removeEventListener('mousemove', move);
+                    slider.removeEventListener('wheel', onWheel);
+                };
+            }, []);
+
+            useEffect(() => {
+                if (listRef.current) {
+                    const sortable = Sortable.create(listRef.current, {
+                        handle: '.drag-handle', animation: 150,
+                        onEnd: (evt) => {
+                            const newItems = [...collections[activeTab]];
+                            const [moved] = newItems.splice(evt.oldIndex, 1);
+                            newItems.splice(evt.newIndex, 0, moved);
+                            setCollections(prev => ({...prev, [activeTab]: newItems}));
+                        }
+                    });
+                    return () => sortable.destroy();
+                }
+            }, [activeTab, collections]);
+
+            const handleDeleteSet = () => {
+                const remainingTabs = Object.keys(collections).filter(t => t !== activeTab);
+                if (remainingTabs.length === 0) {
+                    alert("You must have at least one set.");
+                    setShowDeleteConfirm(false);
+                    return;
+                }
+                const newCollections = { ...collections };
+                delete newCollections[activeTab];
+                setCollections(newCollections);
+                setActiveTab(remainingTabs[0]);
+                setShowDeleteConfirm(false);
+            };
+
+            const tasks = collections[activeTab] || [];
+            const progress = tasks.length > 0 ? (tasks.filter(t => t.completed).length / tasks.length) * 100 : 0;
+
+            return (
+                <div className="max-w-md mx-auto min-h-screen pt-8 px-6 pb-12 bg-[#FDFDFD]">
+                    {showAddTab && (
+                        <div className="fixed inset-0 bg-slate-900/40 z-50 flex items-end justify-center p-4 backdrop-blur-sm">
+                            <div className="bg-white w-full rounded-[3rem] p-8 shadow-2xl slide-up border border-slate-300">
+                                <h3 className="text-2xl font-black mb-6 text-center italic text-slate-900">New Set</h3>
+                                <form onSubmit={(e) => {
+                                    e.preventDefault();
+                                    const upper = newTabName.toUpperCase().trim();
+                                    if(upper && !collections[upper]) {
+                                        setCollections({...collections, [upper]: []});
+                                        setActiveTab(upper);
+                                        setNewTabName(''); setShowAddTab(false);
+                                    }
+                                }}>
+                                    <input autoFocus className="w-full p-5 rounded-[1.5rem] bg-slate-100 border-2 border-slate-200 outline-none font-bold mb-4 focus:border-indigo-500" placeholder="Name..." value={newTabName} onChange={e => setNewTabName(e.target.value)} />
+                                    <button className="w-full py-5 bg-indigo-600 text-white rounded-[1.5rem] font-black uppercase text-[12px] tracking-widest shadow-lg">Create</button>
+                                    <button type="button" onClick={() => setShowAddTab(false)} className="w-full py-4 text-slate-500 font-black text-[12px] uppercase tracking-widest">Cancel</button>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+
+                    {showDeleteConfirm && (
+                        <div className="fixed inset-0 bg-slate-900/40 z-50 flex items-end justify-center p-4 backdrop-blur-sm">
+                            <div className="bg-white w-full rounded-[3rem] p-8 shadow-2xl slide-up border border-slate-300 text-center">
+                                <h3 className="text-2xl font-black mb-2 italic text-slate-900 text-red-600">Delete Set?</h3>
+                                <p className="text-slate-500 text-sm mb-8 font-bold">This will permanently erase all tasks in "{activeTab}".</p>
+                                <div className="space-y-3">
+                                    <button onClick={handleDeleteSet} className="w-full py-5 bg-red-600 text-white rounded-[1.5rem] font-black uppercase text-[12px] tracking-widest shadow-lg">Delete Permanently</button>
+                                    <button onClick={() => setShowDeleteConfirm(false)} className="w-full py-4 text-slate-500 font-black text-[12px] uppercase tracking-widest">Keep Set</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    <header className="mb-8 text-center">
+                        <div className="ocd-logo mb-4"><span>O</span><span className="letter-c">C</span><span className="letter-d">D</span></div>
+                        <h1 className="text-2xl font-black italic text-slate-900">Obsessively Compulsed Daily.</h1>
+                        <p className="text-slate-600 text-[11px] font-black uppercase tracking-widest mt-2">Manage your daily tasks without the stress</p>
+                    </header>
+
+                    <div className="tab-slider-wrapper mb-6">
+                        <div ref={scrollRef} className="tab-scroll-area">
+                            {Object.keys(collections).map(tab => (
+                                <button key={tab} onClick={() => setActiveTab(tab)} 
+                                    className={`px-6 py-3 rounded-full text-[11px] font-black uppercase whitespace-nowrap transition-all flex-shrink-0 border ${activeTab === tab ? 'bg-indigo-600 text-white border-indigo-700 shadow-md' : 'bg-slate-200 text-slate-700 border-slate-300 hover:bg-slate-300'}`}>
+                                    {tab}
+                                </button>
+                            ))}
+                            <button onClick={() => setShowAddTab(true)} className="px-5 py-3 rounded-full bg-slate-200 text-slate-700 border border-slate-300 font-black min-w-[3rem] flex-shrink-0 hover:bg-slate-300">+</button>
+                        </div>
+                    </div>
+
+                    <div className="mb-8 flex items-center justify-between bg-white border-2 border-slate-100 p-6 rounded-[2.5rem] shadow-sm">
+                        <div className="flex items-center gap-5">
+                            <div className="w-16 h-16 rounded-full border-4 border-slate-100 flex items-center justify-center relative">
+                                <svg className="w-full h-full absolute -rotate-90 p-1">
+                                    <circle cx="24" cy="24" r="20" fill="none" stroke="#6366f1" strokeWidth="5" strokeDasharray="125.6" strokeDashoffset={125.6 - (125.6 * progress) / 100} style={{transition: 'stroke-dashoffset 0.8s ease-out'}} viewBox="0 0 48 48" />
+                                </svg>
+                                <span className="text-[13px] font-black text-slate-900">{Math.round(progress)}%</span>
+                            </div>
+                            <div>
+                                <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Set Progress</p>
+                                <p className="text-2xl font-black italic text-slate-900 truncate max-w-[180px]">{activeTab}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <form onSubmit={(e) => {
+                        e.preventDefault(); if(!text.trim()) return;
+                        setCollections({...collections, [activeTab]: [{id: Date.now().toString(), title: text, completed: false}, ...tasks]});
+                        setText('');
+                    }} className="relative mb-8">
+                        <input className="w-full p-5 rounded-[1.5rem] bg-slate-50 border-2 border-slate-200 outline-none font-bold placeholder:text-slate-400 text-slate-900 focus:border-indigo-400" placeholder={`Add to ${activeTab.toLowerCase()}...`} value={text} onChange={e => setText(e.target.value)} />
+                        <button className="absolute right-3 top-2 bottom-2 px-5 bg-indigo-600 text-white rounded-xl font-black shadow-md">＋</button>
+                    </form>
+
+                    <div ref={listRef} className="space-y-4">
+                        {tasks.map(t => <TaskCard key={t.id} task={t} onComplete={(id, time) => {
+                            const updated = tasks.map(item => item.id === id ? {...item, completed: true, confirmedAt: time} : item);
+                            setCollections({...collections, [activeTab]: updated});
+                        }} onDelete={id => setCollections({...collections, [activeTab]: tasks.filter(item => item.id !== id)})} />)}
+                        {tasks.length === 0 && <div className="text-center py-10 text-slate-500 text-[11px] font-black uppercase tracking-widest">No tasks in this set</div>}
+                    </div>
+
+                    <div className="mt-10 flex flex-col items-center gap-4">
+                        <button onClick={() => setCollections({...collections, [activeTab]: tasks.map(t => ({...t, completed: false}))})} className="text-[10px] font-black uppercase text-slate-500 tracking-[0.4em] hover:text-slate-800 transition-colors">Reset {activeTab}</button>
+                        <button onClick={() => setShowDeleteConfirm(true)} className="text-[10px] font-black uppercase text-red-400 tracking-[0.4em] hover:text-red-600 transition-colors">Delete Set</button>
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+</body>
+</html>
