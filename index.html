@@ -20,6 +20,31 @@
         }
         .tab-scroll-area { display: flex; overflow-x: auto; padding-bottom: 14px; gap: 12px; scrollbar-width: none; }
         .tab-scroll-area::-webkit-scrollbar { display: none; }
+        
+        .header-logo { width: 120px; height: auto; object-fit: contain; }
+
+        /* FIXED CENTERED PROGRESS STYLING */
+        .progress-container {
+            width: 80px;
+            height: 80px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .progress-text {
+            position: absolute;
+            font-size: 14px;
+            font-weight: 900;
+            color: #0f172a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+        }
     </style>
 </head>
 <body>
@@ -105,7 +130,6 @@
                 });
             }, [collections]);
 
-            // Robust Alarm Engine
             useEffect(() => {
                 const checkAlarms = setInterval(() => {
                     const now = new Date();
@@ -145,13 +169,13 @@
                     if (perm === "granted") {
                         navigator.serviceWorker.ready.then(reg => {
                             reg.showNotification("Alarms Active", { 
-                                body: "Your Pixel 9 is now synced with Anchors.", 
+                                body: "Sync complete.", 
                                 icon: 'icon.png',
                                 vibrate: [200, 100, 200]
                             });
                         });
                     } else {
-                        alert("Notifications are blocked in system settings.");
+                        alert("Enable notifications in system settings.");
                     }
                 });
             };
@@ -168,10 +192,10 @@
             if (!isInstalled) {
                 return (
                     <div id="gatekeeper">
-                        <img src="logo.png" className="w-48 mb-10" alt="Logo" />
+                        <img src="logo.png" className="w-40 mb-10" alt="Logo" />
                         <h2 className="text-2xl font-black italic text-slate-900 mb-2">App Required.</h2>
                         <p className="text-slate-500 text-sm font-bold uppercase tracking-widest mb-10 px-6 leading-relaxed">
-                            Pings only work in the standalone app version.
+                            Standalone version required for background pings.
                         </p>
                         {deferredPrompt ? (
                             <button 
@@ -195,10 +219,10 @@
 
             return (
                 <div className="max-w-md mx-auto min-h-screen pt-12 px-6 pb-20">
-                    <header className="mb-10 text-center relative">
-                        <img src="logo.png" className="w-32 mx-auto mb-2" alt="Logo" />
+                    <header className="mb-10 text-center relative flex flex-col items-center">
                         <button onClick={triggerTest} className="absolute right-0 top-0 text-[9px] font-black text-indigo-600 uppercase bg-indigo-50 px-2 py-1 rounded-full">Test Alarms</button>
-                        <h1 className="text-2xl font-black italic text-slate-900">Anchors.</h1>
+                        <img src="logo.png" className="header-logo mb-2" alt="Logo" />
+                        <h1 className="text-2xl font-black italic text-slate-900 leading-tight">Anchors.</h1>
                     </header>
 
                     <div className="tab-scroll-area mb-8">
@@ -208,9 +232,12 @@
                     </div>
 
                     <div className="mb-10 flex items-center gap-5 bg-white border border-slate-100 p-8 rounded-[3rem] shadow-sm">
-                        <div className="w-20 h-20 rounded-full border-[6px] border-slate-50 flex items-center justify-center relative">
-                            <svg className="w-full h-full absolute -rotate-90 p-1"><circle cx="24" cy="24" r="20" fill="none" stroke="#6366f1" strokeWidth="6" strokeDasharray="125.6" strokeDashoffset={125.6 - (125.6 * progress) / 100} viewBox="0 0 48 48" /></svg>
-                            <span className="text-[14px] font-black text-slate-900">{Math.round(progress)}%</span>
+                        <div className="progress-container">
+                            <div className="progress-text">{Math.round(progress)}%</div>
+                            <svg width="80" height="80" viewBox="0 0 80 80" className="absolute -rotate-90">
+                                <circle cx="40" cy="40" r="34" fill="none" stroke="#f1f5f9" strokeWidth="6" />
+                                <circle cx="40" cy="40" r="34" fill="none" stroke="#6366f1" strokeWidth="6" strokeDasharray="213.6" strokeDashoffset={213.6 - (213.6 * progress) / 100} style={{transition: 'stroke-dashoffset 0.8s ease-out'}} />
+                            </svg>
                         </div>
                         <p className="text-3xl font-black italic text-slate-900 truncate">{activeTab}</p>
                     </div>
@@ -220,8 +247,8 @@
                         setCollections({...collections, [activeTab]: [{id: Date.now().toString(), title: text, completed: false, reminderTime: null}, ...collections[activeTab]]});
                         setText('');
                     }} className="relative mb-10">
-                        <input className="w-full p-6 rounded-[2rem] bg-slate-50 border border-slate-100 outline-none font-bold text-lg" placeholder="New trigger..." value={text} onChange={e => setText(e.target.value)} />
-                        <button className="absolute right-3 top-3 bottom-3 px-6 bg-indigo-600 text-white rounded-2xl font-black">＋</button>
+                        <input className="w-full p-6 rounded-[2rem] bg-slate-50 border border-slate-100 outline-none font-bold text-lg placeholder:text-slate-300" placeholder="New trigger..." value={text} onChange={e => setText(e.target.value)} />
+                        <button className="absolute right-3 top-3 bottom-3 px-6 bg-indigo-600 text-white rounded-2xl font-black active:scale-95 transition-transform">＋</button>
                     </form>
 
                     <div className="space-y-4">
