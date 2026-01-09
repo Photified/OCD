@@ -65,11 +65,11 @@
         const { useState, useRef, useEffect } = React;
 
         const AUDIO_OPTIONS = [
-            { id: 'ping', name: 'Digital Ping', url: 'https://actions.google.com/sounds/v1/foley/beeps_short_confirm.ogg' },
-            { id: 'chime', name: 'Zen Chime', url: 'https://actions.google.com/sounds/v1/vocal/uuh_confirm.ogg' },
-            { id: 'success', name: 'Success Sparkle', url: 'https://actions.google.com/sounds/v1/foley/light_switch.ogg' },
-            { id: 'pop', name: 'Soft Pop', url: 'https://actions.google.com/sounds/v1/cartoon/pop.ogg' },
-            { id: 'bell', name: 'Service Bell', url: 'https://actions.google.com/sounds/v1/foley/reception_bell.ogg' }
+            { id: 'ping', name: 'Digital Ping', url: 'https://cdn.freesound.org/previews/263/263133_2064400-lq.mp3' },
+            { id: 'chime', name: 'Zen Chime', url: 'https://cdn.freesound.org/previews/320/320655_5260872-lq.mp3' },
+            { id: 'success', name: 'Success Sparkle', url: 'https://cdn.freesound.org/previews/270/270404_5123851-lq.mp3' },
+            { id: 'pop', name: 'Soft Pop', url: 'https://cdn.freesound.org/previews/682/682633_14620023-lq.mp3' },
+            { id: 'bell', name: 'Service Bell', url: 'https://cdn.freesound.org/previews/651/651811_13508399-lq.mp3' }
         ];
 
         const INITIAL_DATA = {
@@ -83,21 +83,37 @@
             const [isHolding, setIsHolding] = useState(false);
             const timerRef = useRef(null);
             const hapticInterval = useRef(null);
+            const audioRef = useRef(new Audio(settings.selectedAudio));
             const holdDuration = settings.holdTime * 1000;
+
+            // Pre-load audio instantly when selection changes
+            useEffect(() => {
+                audioRef.current = new Audio(settings.selectedAudio);
+                audioRef.current.load();
+            }, [settings.selectedAudio]);
 
             const startHold = (e) => {
                 if (task.completed) return;
-                if (navigator.vibrate) navigator.vibrate(20);
                 setIsHolding(true);
+                
+                let startTime = Date.now();
+                
+                // Charge-up Haptics: Increases intensity as hold progresses
                 hapticInterval.current = setInterval(() => {
-                    if (navigator.vibrate) navigator.vibrate(10);
-                }, 100);
+                    let elapsed = Date.now() - startTime;
+                    let progress = elapsed / holdDuration;
+                    let pulseStrength = 5 + (progress * 20); // Scale from 5ms to 25ms
+                    if (navigator.vibrate) navigator.vibrate(pulseStrength);
+                }, 80);
 
                 timerRef.current = setTimeout(() => {
                     onComplete(task.id, new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
                     stopHold();
-                    if (navigator.vibrate) navigator.vibrate([40, 30, 40]);
-                    new Audio(settings.selectedAudio || AUDIO_OPTIONS[0].url).play();
+                    
+                    // Final "Pop" Haptic + Instant Audio
+                    if (navigator.vibrate) navigator.vibrate(120);
+                    audioRef.current.currentTime = 0;
+                    audioRef.current.play();
                 }, holdDuration);
             };
 
@@ -154,7 +170,6 @@
             const [deferredPrompt, setDeferredPrompt] = useState(null);
             const [resetHolding, setResetHolding] = useState(false);
             
-            // Swipe tracking
             const [dragOffset, setDragOffset] = useState(0);
             const [isResetting, setIsResetting] = useState(false);
             const startX = useRef(0);
@@ -209,7 +224,6 @@
                 return () => clearInterval(checkAlarms);
             }, [collections]);
 
-            // Swipe Handlers
             const handleTouchStart = (e) => { startX.current = e.touches[0].clientX; setIsResetting(false); };
             const handleTouchMove = (e) => { setDragOffset((e.touches[0].clientX - startX.current) * 0.8); };
             const handleTouchEnd = () => {
@@ -268,7 +282,7 @@
 
                             <header className="mb-10 text-center relative flex flex-col items-center">
                                 <button onClick={() => setView('settings')} className="absolute right-0 top-0 p-2 text-slate-400 hover:text-indigo-600">
-                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
                                 </button>
                                 <img src="logo.png" className={`header-logo mb-2 ${settings.darkMode ? 'dark-mode-logo' : ''}`} alt="Logo" />
                                 <h2 className="text-[10px] font-black tracking-[0.2em] opacity-60 uppercase mb-4">Obsessively Compulsed Daily.</h2>
@@ -300,7 +314,7 @@
                                 setText('');
                             }} className="relative mb-10">
                                 <textarea className={`trigger-input w-full p-6 pr-20 rounded-[2rem] border outline-none font-bold text-lg placeholder:text-slate-300 uppercase leading-tight ${settings.darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-100'}`} placeholder="New trigger..." value={text} onChange={e => setText(e.target.value)} />
-                                <button className="absolute right-3 top-1/2 -translate-y-1/2 w-14 h-14 bg-indigo-600 text-white rounded-2xl font-black active:scale-95 transition-transform flex items-center justify-center text-2xl">＋</button>
+                                <button className="absolute right-3 top-1/2 -translate-y-1/2 w-14 h-14 bg-indigo-600 text-white rounded-2xl font-black shadow-lg flex items-center justify-center text-2xl">＋</button>
                             </form>
 
                             <div ref={listRef} className="space-y-4 mb-10">
@@ -335,18 +349,18 @@
 
                             <div className="space-y-12">
                                 <section>
-                                    <label className="block text-[10px] font-black uppercase text-slate-400 mb-4 tracking-widest">Anchor Sound</label>
+                                    <label className="block text-[10px] font-black uppercase text-slate-400 mb-4 tracking-widest">Anchor Sound Selection</label>
                                     <div className="grid grid-cols-1 gap-2">
                                         {AUDIO_OPTIONS.map(opt => (
                                             <button 
                                                 key={opt.id} 
                                                 onClick={() => {
                                                     setSettings({...settings, selectedAudio: opt.url});
-                                                    new Audio(opt.url).play();
+                                                    let a = new Audio(opt.url); a.play();
                                                 }}
-                                                className={`p-4 rounded-xl border text-left flex justify-between items-center transition-colors ${settings.selectedAudio === opt.url ? 'border-indigo-600 bg-indigo-50 text-indigo-700' : (settings.darkMode ? 'border-slate-700 bg-slate-800' : 'border-slate-200')}`}
+                                                className={`p-4 rounded-xl border text-left flex justify-between items-center transition-colors ${settings.selectedAudio === opt.url ? 'border-indigo-600 bg-indigo-50 text-indigo-700 shadow-md' : (settings.darkMode ? 'border-slate-700 bg-slate-800' : 'border-slate-200')}`}
                                             >
-                                                <span className="font-bold text-xs uppercase">{opt.name}</span>
+                                                <span className="font-black text-xs uppercase italic tracking-wider">{opt.name}</span>
                                                 {settings.selectedAudio === opt.url && <span>✓</span>}
                                             </button>
                                         ))}
@@ -354,16 +368,12 @@
                                 </section>
 
                                 <section>
-                                    <label className="block text-[10px] font-black uppercase text-slate-400 mb-4 tracking-widest">Anchor Hold Time ({settings.holdTime}s)</label>
+                                    <label className="block text-[10px] font-black uppercase text-slate-400 mb-4 tracking-widest">Hold Duration ({settings.holdTime}s)</label>
                                     <input type="range" min="1" max="10" step="1" value={settings.holdTime} onChange={(e) => setSettings({...settings, holdTime: parseInt(e.target.value)})} className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600" />
-                                    <div className="flex justify-between mt-2 text-[9px] font-bold text-slate-400"><span>1s</span><span>10s</span></div>
                                 </section>
 
                                 <section className="flex items-center justify-between">
-                                    <div>
-                                        <h4 className="font-black uppercase text-sm tracking-tight">Dark Appearance</h4>
-                                        <p className="text-[10px] text-slate-500 font-bold uppercase mt-1">Easier on the eyes</p>
-                                    </div>
+                                    <h4 className="font-black uppercase text-sm tracking-tight">Dark Appearance</h4>
                                     <button onClick={() => setSettings({...settings, darkMode: !settings.darkMode})} className={`w-14 h-8 rounded-full transition-colors relative ${settings.darkMode ? 'bg-indigo-600' : 'bg-slate-200'}`}>
                                         <div className={`absolute top-1 w-6 h-6 bg-white rounded-full transition-all ${settings.darkMode ? 'left-7' : 'left-1'}`} />
                                     </button>
@@ -371,7 +381,6 @@
 
                                 <section>
                                     <button onClick={() => { Notification.requestPermission(); }} className="w-full py-5 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-600 font-black uppercase text-[11px] mb-4">Sync System Notifications</button>
-                                    <p className="text-[9px] text-slate-400 text-center font-bold uppercase leading-relaxed">Ensure Android Battery is set to 'Unrestricted' for pings.</p>
                                 </section>
                             </div>
                         </div>
