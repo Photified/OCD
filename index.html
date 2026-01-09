@@ -23,8 +23,10 @@
         .tab-scroll-area { display: flex; overflow-x: auto; padding-bottom: 14px; gap: 12px; scrollbar-width: none; }
         .tab-scroll-area::-webkit-scrollbar { display: none; }
         .header-logo { width: 120px; height: auto; object-fit: contain; }
+        
+        /* FIXED CENTERED PROGRESS STYLING */
         .progress-container { width: 80px; height: 80px; position: relative; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-        .progress-text { position: absolute; font-size: 14px; font-weight: 900; color: #0f172a; z-index: 10; }
+        .progress-text { position: absolute; font-size: 14px; font-weight: 900; color: #0f172a; z-index: 10; pointer-events: none; }
         .drag-handle { cursor: grab; padding: 4px; }
     </style>
 </head>
@@ -109,7 +111,7 @@
                 window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); setDeferredPrompt(e); });
             }, [collections]);
 
-            // Drag-and-Drop Sorting Restored
+            // Drag-and-Drop Sorting
             useEffect(() => {
                 if (listRef.current) {
                     const sortable = Sortable.create(listRef.current, {
@@ -140,7 +142,7 @@
                                     navigator.serviceWorker.controller.postMessage({
                                         type: 'SHOW_NOTIFICATION',
                                         title: 'OCD Anchor',
-                                        body: task.title
+                                        body: task.title // USER TEXT ONLY
                                     });
                                 }
                                 dataChanged = true;
@@ -164,6 +166,18 @@
                 });
             };
 
+            const resetConfirmed = () => {
+                const updatedSet = collections[activeTab].map(t => ({...t, completed: false, confirmedAt: null}));
+                setCollections({...collections, [activeTab]: updatedSet});
+            };
+
+            const handleInstall = async () => {
+                if (!deferredPrompt) return;
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') setDeferredPrompt(null);
+            };
+
             const progress = (collections[activeTab]?.filter(t => t.completed).length / collections[activeTab]?.length * 100) || 0;
 
             if (!isInstalled) {
@@ -171,7 +185,7 @@
                     <div id="gatekeeper">
                         <img src="logo.png" className="w-40 mb-10" alt="Logo" />
                         <h2 className="text-2xl font-black italic text-slate-900 mb-2">App Required.</h2>
-                        <p className="text-slate-500 text-sm font-bold uppercase tracking-widest mb-10 px-6 leading-relaxed text-center">Standalone version required for background pings.</p>
+                        <p className="text-slate-500 text-sm font-bold uppercase tracking-widest mb-10 px-6 leading-relaxed text-center">Standalone version required for clean background pings.</p>
                         {deferredPrompt ? (
                             <button onClick={() => { Notification.requestPermission(); deferredPrompt.prompt(); }} className="bg-indigo-600 text-white w-full max-w-xs py-5 rounded-[2rem] text-xs font-black uppercase shadow-2xl">Download & Install</button>
                         ) : ( <p className="text-[10px] text-slate-400 uppercase font-bold">Tap ⋮ (Top Right) > Install App</p> )}
@@ -185,7 +199,7 @@
                         <div className="fixed inset-0 bg-slate-900/40 z-50 flex items-end justify-center p-4 backdrop-blur-sm">
                             <div className="bg-white w-full rounded-[3rem] p-8 shadow-2xl slide-up border border-slate-300">
                                 <h3 className="text-2xl font-black mb-6 text-center italic text-slate-900 uppercase">New Set</h3>
-                                <input autoFocus className="w-full p-5 rounded-[1.5rem] bg-slate-100 border-2 border-slate-200 outline-none font-bold mb-4" placeholder="Name (e.g. MORNING)..." value={newTabName} onChange={e => setNewTabName(e.target.value)} />
+                                <input autoFocus className="w-full p-5 rounded-[1.5rem] bg-slate-100 border-2 border-slate-200 outline-none font-bold mb-4" placeholder="Name..." value={newTabName} onChange={e => setNewTabName(e.target.value)} />
                                 <button onClick={() => {
                                     const upper = newTabName.toUpperCase().trim();
                                     if(upper) { setCollections({...collections, [upper]: []}); setActiveTab(upper); setNewTabName(''); setShowAddTab(false); }
@@ -230,7 +244,7 @@
                         <button className="absolute right-3 top-3 bottom-3 px-6 bg-indigo-600 text-white rounded-2xl font-black active:scale-95 transition-transform">＋</button>
                     </form>
 
-                    <div ref={listRef} className="space-y-4">
+                    <div ref={listRef} className="space-y-4 mb-10">
                         {(collections[activeTab] || []).map(t => (
                             <TaskCard key={t.id} task={t} 
                                 onComplete={(id, time) => {
@@ -245,6 +259,14 @@
                             />
                         ))}
                     </div>
+
+                    {/* RESTORED RESET BUTTON */}
+                    <button 
+                        onClick={resetConfirmed}
+                        className="w-full py-4 text-slate-400 font-black uppercase text-[10px] tracking-widest hover:text-indigo-600 transition-colors"
+                    >
+                        Reset All Task Progress
+                    </button>
                 </div>
             );
         }

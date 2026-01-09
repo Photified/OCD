@@ -16,10 +16,11 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
+// Clean notification handler - showing ONLY the trigger text
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SHOW_NOTIFICATION') {
     self.registration.showNotification(event.data.title, {
-      body: event.data.body,
+      body: event.data.body, // This is just the user's task title
       icon: 'icon.png',
       badge: 'icon.png',
       vibrate: [200, 100, 200],
