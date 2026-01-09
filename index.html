@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>OCD - Daily Anchors</title>
+    <title>Obsessively Compulsed Daily</title>
     <link rel="manifest" href="manifest.json">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
@@ -29,6 +29,26 @@
     <script type="text/babel">
         const { useState, useRef, useEffect } = React;
 
+        const INITIAL_DATA = {
+            "LEAVING": [
+                { id: 'l1', title: 'Phone, Wallet, Keys', completed: false, reminderTime: null },
+                { id: 'l2', title: 'Turn off light', completed: false, reminderTime: null },
+                { id: 'l3', title: 'Lock the Door', completed: false, reminderTime: null }
+            ],
+            "WORKDAY": [
+                { id: 'w1', title: 'Check Email', completed: false, reminderTime: null },
+                { id: 'w2', title: 'Top 3 Goals', completed: false, reminderTime: null }
+            ],
+            "BEDTIME": [
+                { id: 'b1', title: 'Doors Locked', completed: false, reminderTime: null },
+                { id: 'b3', title: 'Alarm Set', completed: false, reminderTime: null }
+            ],
+            "SELF-CARE": [
+                { id: 's1', title: 'Mindful Minute', completed: false, reminderTime: null },
+                { id: 's3', title: 'Vitamins Taken', completed: false, reminderTime: null }
+            ]
+        };
+
         function TaskCard({ task, onComplete, onDelete, onUpdateReminder }) {
             const [isHolding, setIsHolding] = useState(false);
             const timerRef = useRef(null);
@@ -50,7 +70,7 @@
                     <div className="flex justify-between items-start mb-2 px-1">
                         <div className="flex items-center gap-4">
                             <div className="drag-handle text-slate-400">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/></svg>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/></svg>
                             </div>
                             <div className="flex flex-col">
                                 <span className={`text-lg font-bold ${task.completed ? 'text-slate-400' : 'text-slate-900'}`}>{task.title}</span>
@@ -65,7 +85,7 @@
                                         />
                                     </div>
                                 )}
-                                {task.completed && <span className="text-[10px] font-black text-indigo-600 uppercase mt-1">Stored at {task.confirmedAt}</span>}
+                                {task.completed && <span className="text-[10px] font-black text-indigo-600 uppercase mt-1">Logged at {task.confirmedAt}</span>}
                             </div>
                         </div>
                         <button onClick={() => onDelete(task.id)} className="text-slate-300 hover:text-red-500 font-bold">✕</button>
@@ -85,18 +105,17 @@
         }
 
         function App() {
-            const [collections, setCollections] = useState(() => JSON.parse(localStorage.getItem('ocd_pwa_v1')) || { "DAILY": [] });
+            const [collections, setCollections] = useState(() => JSON.parse(localStorage.getItem('ocd_pwa_final')) || INITIAL_DATA);
             const [activeTab, setActiveTab] = useState(Object.keys(collections)[0]);
+            const [showAddTab, setShowAddTab] = useState(false);
+            const [newTabName, setNewTabName] = useState('');
             const [text, setText] = useState('');
+            const listRef = useRef(null);
 
-            useEffect(() => { localStorage.setItem('ocd_pwa_v1', JSON.stringify(collections)); }, [collections]);
+            useEffect(() => { localStorage.setItem('ocd_pwa_final', JSON.stringify(collections)); }, [collections]);
 
-            // Notification Logic
+            // Alarm Ping Engine
             useEffect(() => {
-                if ("Notification" in window && Notification.permission === "default") {
-                    Notification.requestPermission();
-                }
-
                 const checkAlarms = setInterval(() => {
                     const now = new Date();
                     const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
@@ -107,11 +126,12 @@
                     Object.keys(newCollections).forEach(tab => {
                         newCollections[tab] = newCollections[tab].map(task => {
                             if (task.reminderTime === currentTime && !task.completed && !task.lastPingedAt) {
-                                new Notification("OCD Reminder", { body: `Confirm: ${task.title}`, icon: "/icon.png" });
+                                if ("Notification" in window && Notification.permission === "granted") {
+                                    new Notification("OCD Reminder", { body: `Time to confirm: ${task.title}` });
+                                }
                                 dataChanged = true;
                                 return { ...task, lastPingedAt: currentTime };
                             }
-                            // Reset ping marker if the time has passed so it can fire tomorrow
                             if (task.lastPingedAt && task.lastPingedAt !== currentTime) {
                                 return { ...task, lastPingedAt: null };
                             }
@@ -120,45 +140,82 @@
                     });
 
                     if (dataChanged) setCollections(newCollections);
-                }, 10000); // Check every 10 seconds
+                }, 10000);
 
                 return () => clearInterval(checkAlarms);
             }, [collections]);
 
-            const addTask = (e) => {
-                e.preventDefault();
-                if (!text.trim()) return;
-                const newTask = { id: Date.now().toString(), title: text, completed: false, reminderTime: null };
-                setCollections({ ...collections, [activeTab]: [newTask, ...collections[activeTab]] });
-                setText('');
-            };
+            // Sortable logic
+            useEffect(() => {
+                if (listRef.current) {
+                    const sortable = Sortable.create(listRef.current, {
+                        handle: '.drag-handle', animation: 150,
+                        onEnd: (evt) => {
+                            const newItems = [...collections[activeTab]];
+                            const [moved] = newItems.splice(evt.oldIndex, 1);
+                            newItems.splice(evt.newIndex, 0, moved);
+                            setCollections(prev => ({...prev, [activeTab]: newItems}));
+                        }
+                    });
+                    return () => sortable.destroy();
+                }
+            }, [activeTab, collections]);
 
-            const updateReminder = (id, time) => {
-                const updated = collections[activeTab].map(t => t.id === id ? { ...t, reminderTime: time, lastPingedAt: null } : t);
-                setCollections({ ...collections, [activeTab]: updated });
-            };
+            const progress = (collections[activeTab]?.filter(t => t.completed).length / collections[activeTab]?.length * 100) || 0;
 
             return (
-                <div className="max-w-md mx-auto min-h-screen pt-8 px-6 pb-12">
+                <div className="max-w-md mx-auto min-h-screen pt-8 px-6 pb-12 bg-[#FDFDFD]">
+                    {showAddTab && (
+                        <div className="fixed inset-0 bg-slate-900/40 z-50 flex items-end justify-center p-4 backdrop-blur-sm">
+                            <div className="bg-white w-full rounded-[3rem] p-8 shadow-2xl slide-up border border-slate-300">
+                                <h3 className="text-2xl font-black mb-6 text-center italic text-slate-900">New Set</h3>
+                                <input autoFocus className="w-full p-5 rounded-[1.5rem] bg-slate-100 border-2 border-slate-200 outline-none font-bold mb-4" placeholder="Name..." value={newTabName} onChange={e => setNewTabName(e.target.value)} />
+                                <button onClick={() => {
+                                    const upper = newTabName.toUpperCase().trim();
+                                    if(upper) { setCollections({...collections, [upper]: []}); setActiveTab(upper); setNewTabName(''); setShowAddTab(false); }
+                                }} className="w-full py-5 bg-indigo-600 text-white rounded-[1.5rem] font-black uppercase text-[12px]">Create</button>
+                                <button onClick={() => setShowAddTab(false)} className="w-full py-4 text-slate-500 font-black text-[12px] uppercase">Cancel</button>
+                            </div>
+                        </div>
+                    )}
+
                     <header className="mb-8 text-center">
                         <div className="ocd-logo mb-4"><span>O</span><span className="letter-c">C</span><span className="letter-d">D</span></div>
-                        <h1 className="text-2xl font-black italic text-slate-900">Anchors.</h1>
+                        <h1 className="text-2xl font-black italic text-slate-900">Obsessively Compulsed Daily.</h1>
                     </header>
 
                     <div className="tab-slider-wrapper mb-6">
                         <div className="tab-scroll-area">
                             {Object.keys(collections).map(tab => (
-                                <button key={tab} onClick={() => setActiveTab(tab)} className={`px-6 py-3 rounded-full text-[11px] font-black uppercase border ${activeTab === tab ? 'bg-indigo-600 text-white border-indigo-700' : 'bg-slate-100 text-slate-500'}`}>{tab}</button>
+                                <button key={tab} onClick={() => setActiveTab(tab)} className={`px-6 py-3 rounded-full text-[11px] font-black uppercase whitespace-nowrap transition-all border ${activeTab === tab ? 'bg-indigo-600 text-white border-indigo-700 shadow-md' : 'bg-slate-100 text-slate-500 border-slate-200'}`}>{tab}</button>
                             ))}
+                            <button onClick={() => setShowAddTab(true)} className="px-5 py-3 rounded-full bg-slate-200 text-slate-700 border border-slate-300 font-black flex-shrink-0">+</button>
                         </div>
                     </div>
 
-                    <form onSubmit={addTask} className="relative mb-8">
-                        <input className="w-full p-5 rounded-[1.5rem] bg-slate-50 border-2 border-slate-100 outline-none font-bold text-slate-900" placeholder="New trigger..." value={text} onChange={e => setText(e.target.value)} />
-                        <button className="absolute right-3 top-2 bottom-2 px-5 bg-indigo-600 text-white rounded-xl font-black">＋</button>
+                    <div className="mb-8 flex items-center justify-between bg-white border-2 border-slate-100 p-6 rounded-[2.5rem] shadow-sm">
+                        <div className="flex items-center gap-5">
+                            <div className="w-16 h-16 rounded-full border-4 border-slate-100 flex items-center justify-center relative">
+                                <svg className="w-full h-full absolute -rotate-90 p-1"><circle cx="24" cy="24" r="20" fill="none" stroke="#6366f1" strokeWidth="5" strokeDasharray="125.6" strokeDashoffset={125.6 - (125.6 * progress) / 100} style={{transition: 'stroke-dashoffset 0.8s ease-out'}} viewBox="0 0 48 48" /></svg>
+                                <span className="text-[13px] font-black text-slate-900">{Math.round(progress)}%</span>
+                            </div>
+                            <div>
+                                <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Set Progress</p>
+                                <p className="text-2xl font-black italic text-slate-900 truncate max-w-[180px]">{activeTab}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <form onSubmit={(e) => {
+                        e.preventDefault(); if(!text.trim()) return;
+                        setCollections({...collections, [activeTab]: [{id: Date.now().toString(), title: text, completed: false, reminderTime: null}, ...collections[activeTab]]});
+                        setText('');
+                    }} className="relative mb-8">
+                        <input className="w-full p-5 rounded-[1.5rem] bg-slate-50 border-2 border-slate-100 outline-none font-bold text-slate-900" placeholder="Add task..." value={text} onChange={e => setText(e.target.value)} />
+                        <button className="absolute right-3 top-2 bottom-2 px-5 bg-indigo-600 text-white rounded-xl font-black shadow-md">＋</button>
                     </form>
 
-                    <div className="space-y-2">
+                    <div ref={listRef} className="space-y-4">
                         {(collections[activeTab] || []).map(t => (
                             <TaskCard key={t.id} task={t} 
                                 onComplete={(id, time) => {
@@ -166,7 +223,10 @@
                                     setCollections({...collections, [activeTab]: updated});
                                 }}
                                 onDelete={id => setCollections({...collections, [activeTab]: collections[activeTab].filter(i => i.id !== id)})}
-                                onUpdateReminder={updateReminder}
+                                onUpdateReminder={(id, time) => {
+                                    const updated = collections[activeTab].map(t => t.id === id ? { ...t, reminderTime: time, lastPingedAt: null } : t);
+                                    setCollections({ ...collections, [activeTab]: updated });
+                                }}
                             />
                         ))}
                     </div>
@@ -175,13 +235,7 @@
         }
 
         ReactDOM.createRoot(document.getElementById('root')).render(<App />);
-
-        // Register Service Worker for PWA
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js');
-            });
-        }
+        if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js'); }); }
     </script>
 </body>
 </html>
