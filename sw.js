@@ -15,3 +15,16 @@ self.addEventListener('notificationclick', (event) => {
     })
   );
 });
+
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SHOW_NOTIFICATION') {
+    self.registration.showNotification(event.data.title, {
+      body: event.data.body,
+      icon: 'icon.png',
+      badge: 'icon.png',
+      vibrate: [200, 100, 200],
+      tag: 'ocd-anchor',
+      renotify: true
+    });
+  }
+});

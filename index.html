@@ -18,33 +18,14 @@
             position: fixed; inset: 0; background: #FDFDFD; z-index: 9999;
             display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem;
         }
+        .slide-up { animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
         .tab-scroll-area { display: flex; overflow-x: auto; padding-bottom: 14px; gap: 12px; scrollbar-width: none; }
         .tab-scroll-area::-webkit-scrollbar { display: none; }
-        
         .header-logo { width: 120px; height: auto; object-fit: contain; }
-
-        /* FIXED CENTERED PROGRESS STYLING */
-        .progress-container {
-            width: 80px;
-            height: 80px;
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-        }
-        .progress-text {
-            position: absolute;
-            font-size: 14px;
-            font-weight: 900;
-            color: #0f172a;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 100%;
-            height: 100%;
-            z-index: 10;
-        }
+        .progress-container { width: 80px; height: 80px; position: relative; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .progress-text { position: absolute; font-size: 14px; font-weight: 900; color: #0f172a; z-index: 10; }
+        .drag-handle { cursor: grab; padding: 4px; }
     </style>
 </head>
 <body>
@@ -77,21 +58,22 @@
             const cancelHold = () => { setIsHolding(false); clearTimeout(timerRef.current); };
 
             return (
-                <div className="mb-3 p-6 rounded-[2.5rem] border bg-white border-slate-200 shadow-sm">
+                <div className="task-item mb-3 p-6 rounded-[2.5rem] border bg-white border-slate-200 shadow-sm transition-all duration-500">
                     <div className="flex justify-between items-start mb-2 px-1">
-                        <div className="flex flex-col">
-                            <span className={`text-lg font-bold ${task.completed ? 'text-slate-400' : 'text-slate-900'}`}>{task.title}</span>
-                            {!task.completed && (
-                                <div className="flex items-center gap-2 mt-1">
-                                    <span className="text-[10px] font-black text-indigo-400 uppercase">Ping:</span>
-                                    <input 
-                                        type="time" 
-                                        value={task.reminderTime || ""} 
-                                        onChange={(e) => onUpdateReminder(task.id, e.target.value)} 
-                                        className="text-[10px] font-bold bg-slate-100 rounded px-1 outline-none border-none"
-                                    />
-                                </div>
-                            )}
+                        <div className="flex items-center gap-4">
+                            <div className="drag-handle text-slate-400">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/></svg>
+                            </div>
+                            <div className="flex flex-col">
+                                <span className={`text-lg font-bold ${task.completed ? 'text-slate-400' : 'text-slate-900'}`}>{task.title}</span>
+                                {!task.completed && (
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <span className="text-[10px] font-black text-indigo-400 uppercase">Ping:</span>
+                                        <input type="time" value={task.reminderTime || ""} onChange={(e) => onUpdateReminder(task.id, e.target.value)} className="text-[10px] font-bold bg-slate-100 rounded px-1 outline-none border-none"/>
+                                    </div>
+                                )}
+                                {task.completed && <span className="text-[10px] font-black text-indigo-600 uppercase mt-1 italic">Confirmed at {task.confirmedAt}</span>}
+                            </div>
                         </div>
                         <button onClick={() => onDelete(task.id)} className="text-slate-300 font-bold p-2">✕</button>
                     </div>
@@ -113,23 +95,37 @@
             const [collections, setCollections] = useState(() => JSON.parse(localStorage.getItem('ocd_pwa_final')) || INITIAL_DATA);
             const [activeTab, setActiveTab] = useState(Object.keys(collections)[0]);
             const [text, setText] = useState('');
+            const [showAddTab, setShowAddTab] = useState(false);
+            const [newTabName, setNewTabName] = useState('');
             const [isInstalled, setIsInstalled] = useState(true); 
             const [deferredPrompt, setDeferredPrompt] = useState(null);
+            const [notifStatus, setNotifStatus] = useState(Notification.permission);
+            const listRef = useRef(null);
 
             useEffect(() => {
-                const checkStatus = () => {
-                    const standalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-                    setIsInstalled(standalone);
-                };
-                checkStatus();
+                const standalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+                setIsInstalled(standalone);
                 localStorage.setItem('ocd_pwa_final', JSON.stringify(collections));
-
-                window.addEventListener('beforeinstallprompt', (e) => {
-                    e.preventDefault();
-                    setDeferredPrompt(e);
-                });
+                window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); setDeferredPrompt(e); });
             }, [collections]);
 
+            // Drag-and-Drop Sorting Restored
+            useEffect(() => {
+                if (listRef.current) {
+                    const sortable = Sortable.create(listRef.current, {
+                        handle: '.drag-handle', animation: 150,
+                        onEnd: (evt) => {
+                            const newItems = [...collections[activeTab]];
+                            const [moved] = newItems.splice(evt.oldIndex, 1);
+                            newItems.splice(evt.newIndex, 0, moved);
+                            setCollections(prev => ({...prev, [activeTab]: newItems}));
+                        }
+                    });
+                    return () => sortable.destroy();
+                }
+            }, [activeTab, collections]);
+
+            // Alarm Engine
             useEffect(() => {
                 const checkAlarms = setInterval(() => {
                     const now = new Date();
@@ -140,22 +136,17 @@
                     Object.keys(newCollections).forEach(tab => {
                         newCollections[tab] = newCollections[tab].map(task => {
                             if (task.reminderTime === currentTime && !task.completed && !task.lastPingedAt) {
-                                if (Notification.permission === "granted") {
-                                    navigator.serviceWorker.ready.then(reg => {
-                                        reg.showNotification("OCD Anchor", { 
-                                            body: `Time to confirm: ${task.title}`,
-                                            icon: 'icon.png',
-                                            vibrate: [200, 100, 200],
-                                            requireInteraction: true 
-                                        });
+                                if (Notification.permission === "granted" && navigator.serviceWorker.controller) {
+                                    navigator.serviceWorker.controller.postMessage({
+                                        type: 'SHOW_NOTIFICATION',
+                                        title: 'OCD Anchor',
+                                        body: task.title
                                     });
                                 }
                                 dataChanged = true;
                                 return { ...task, lastPingedAt: currentTime };
                             }
-                            if (task.lastPingedAt && task.lastPingedAt !== currentTime) {
-                                return { ...task, lastPingedAt: null };
-                            }
+                            if (task.lastPingedAt && task.lastPingedAt !== currentTime) return { ...task, lastPingedAt: null };
                             return task;
                         });
                     });
@@ -166,25 +157,11 @@
 
             const triggerTest = () => {
                 Notification.requestPermission().then(perm => {
-                    if (perm === "granted") {
-                        navigator.serviceWorker.ready.then(reg => {
-                            reg.showNotification("Alarms Active", { 
-                                body: "Sync complete.", 
-                                icon: 'icon.png',
-                                vibrate: [200, 100, 200]
-                            });
-                        });
-                    } else {
-                        alert("Enable notifications in system settings.");
+                    setNotifStatus(perm);
+                    if (perm === "granted" && navigator.serviceWorker.controller) {
+                        navigator.serviceWorker.controller.postMessage({ type: 'SHOW_NOTIFICATION', title: 'Alarms Ready', body: 'This is how your pings look.' });
                     }
                 });
-            };
-
-            const handleInstall = async () => {
-                if (!deferredPrompt) return;
-                deferredPrompt.prompt();
-                const { outcome } = await deferredPrompt.userChoice;
-                if (outcome === 'accepted') setDeferredPrompt(null);
             };
 
             const progress = (collections[activeTab]?.filter(t => t.completed).length / collections[activeTab]?.length * 100) || 0;
@@ -194,41 +171,43 @@
                     <div id="gatekeeper">
                         <img src="logo.png" className="w-40 mb-10" alt="Logo" />
                         <h2 className="text-2xl font-black italic text-slate-900 mb-2">App Required.</h2>
-                        <p className="text-slate-500 text-sm font-bold uppercase tracking-widest mb-10 px-6 leading-relaxed">
-                            Standalone version required for background pings.
-                        </p>
+                        <p className="text-slate-500 text-sm font-bold uppercase tracking-widest mb-10 px-6 leading-relaxed text-center">Standalone version required for background pings.</p>
                         {deferredPrompt ? (
-                            <button 
-                                onClick={async () => {
-                                    await Notification.requestPermission();
-                                    handleInstall();
-                                }} 
-                                className="bg-indigo-600 text-white w-full max-w-xs py-5 rounded-[2rem] text-xs font-black uppercase shadow-2xl"
-                            >
-                                Download & Install
-                            </button>
-                        ) : (
-                            <div className="text-center">
-                                <p className="text-xs font-black text-indigo-600 uppercase mb-4 tracking-tighter">Manual Setup Required:</p>
-                                <p className="text-[10px] text-slate-400 uppercase font-bold">Tap ⋮ (Top Right) > Install App</p>
-                            </div>
-                        )}
+                            <button onClick={() => { Notification.requestPermission(); deferredPrompt.prompt(); }} className="bg-indigo-600 text-white w-full max-w-xs py-5 rounded-[2rem] text-xs font-black uppercase shadow-2xl">Download & Install</button>
+                        ) : ( <p className="text-[10px] text-slate-400 uppercase font-bold">Tap ⋮ (Top Right) > Install App</p> )}
                     </div>
                 );
             }
 
             return (
                 <div className="max-w-md mx-auto min-h-screen pt-12 px-6 pb-20">
+                    {showAddTab && (
+                        <div className="fixed inset-0 bg-slate-900/40 z-50 flex items-end justify-center p-4 backdrop-blur-sm">
+                            <div className="bg-white w-full rounded-[3rem] p-8 shadow-2xl slide-up border border-slate-300">
+                                <h3 className="text-2xl font-black mb-6 text-center italic text-slate-900 uppercase">New Set</h3>
+                                <input autoFocus className="w-full p-5 rounded-[1.5rem] bg-slate-100 border-2 border-slate-200 outline-none font-bold mb-4" placeholder="Name (e.g. MORNING)..." value={newTabName} onChange={e => setNewTabName(e.target.value)} />
+                                <button onClick={() => {
+                                    const upper = newTabName.toUpperCase().trim();
+                                    if(upper) { setCollections({...collections, [upper]: []}); setActiveTab(upper); setNewTabName(''); setShowAddTab(false); }
+                                }} className="w-full py-5 bg-indigo-600 text-white rounded-[1.5rem] font-black uppercase text-[12px]">Create Set</button>
+                                <button onClick={() => setShowAddTab(false)} className="w-full py-4 text-slate-500 font-black text-[12px] uppercase">Cancel</button>
+                            </div>
+                        </div>
+                    )}
+
                     <header className="mb-10 text-center relative flex flex-col items-center">
-                        <button onClick={triggerTest} className="absolute right-0 top-0 text-[9px] font-black text-indigo-600 uppercase bg-indigo-50 px-2 py-1 rounded-full">Test Alarms</button>
+                        <button onClick={triggerTest} className={`absolute right-0 top-0 text-[9px] font-black uppercase px-2 py-1 rounded-full ${notifStatus === 'granted' ? 'bg-green-50 text-green-600' : 'bg-indigo-50 text-indigo-600'}`}>
+                            {notifStatus === 'granted' ? 'Pings Active' : 'Sync Alarms'}
+                        </button>
                         <img src="logo.png" className="header-logo mb-2" alt="Logo" />
                         <h1 className="text-2xl font-black italic text-slate-900 leading-tight">Anchors.</h1>
                     </header>
 
                     <div className="tab-scroll-area mb-8">
                         {Object.keys(collections).map(tab => (
-                            <button key={tab} onClick={() => setActiveTab(tab)} className={`px-6 py-3 rounded-full text-[11px] font-black uppercase border whitespace-nowrap ${activeTab === tab ? 'bg-indigo-600 text-white border-indigo-700 shadow-md' : 'bg-slate-50 text-slate-400 border-slate-100'}`}>{tab}</button>
+                            <button key={tab} onClick={() => setActiveTab(tab)} className={`px-6 py-3 rounded-full text-[11px] font-black uppercase border whitespace-nowrap ${activeTab === tab ? 'bg-indigo-600 text-white border-indigo-700 shadow-md' : 'bg-slate-100 text-slate-500 border-slate-200'}`}>{tab}</button>
                         ))}
+                        <button onClick={() => setShowAddTab(true)} className="px-5 py-3 rounded-full bg-slate-200 text-slate-700 border border-slate-300 font-black flex-shrink-0">+</button>
                     </div>
 
                     <div className="mb-10 flex items-center gap-5 bg-white border border-slate-100 p-8 rounded-[3rem] shadow-sm">
@@ -239,7 +218,7 @@
                                 <circle cx="40" cy="40" r="34" fill="none" stroke="#6366f1" strokeWidth="6" strokeDasharray="213.6" strokeDashoffset={213.6 - (213.6 * progress) / 100} style={{transition: 'stroke-dashoffset 0.8s ease-out'}} />
                             </svg>
                         </div>
-                        <p className="text-3xl font-black italic text-slate-900 truncate">{activeTab}</p>
+                        <p className="text-3xl font-black italic text-slate-900 truncate uppercase">{activeTab}</p>
                     </div>
 
                     <form onSubmit={(e) => {
@@ -247,22 +226,22 @@
                         setCollections({...collections, [activeTab]: [{id: Date.now().toString(), title: text, completed: false, reminderTime: null}, ...collections[activeTab]]});
                         setText('');
                     }} className="relative mb-10">
-                        <input className="w-full p-6 rounded-[2rem] bg-slate-50 border border-slate-100 outline-none font-bold text-lg placeholder:text-slate-300" placeholder="New trigger..." value={text} onChange={e => setText(e.target.value)} />
+                        <input className="w-full p-6 rounded-[2rem] bg-slate-50 border border-slate-100 outline-none font-bold text-lg placeholder:text-slate-300 text-center uppercase" placeholder="New trigger..." value={text} onChange={e => setText(e.target.value)} />
                         <button className="absolute right-3 top-3 bottom-3 px-6 bg-indigo-600 text-white rounded-2xl font-black active:scale-95 transition-transform">＋</button>
                     </form>
 
-                    <div className="space-y-4">
+                    <div ref={listRef} className="space-y-4">
                         {(collections[activeTab] || []).map(t => (
                             <TaskCard key={t.id} task={t} 
                                 onComplete={(id, time) => {
                                     const updated = collections[activeTab].map(item => item.id === id ? {...item, completed: true, confirmedAt: time} : item);
                                     setCollections({...collections, [activeTab]: updated});
-                                }}
-                                onDelete={id => setCollections({...collections, [activeTab]: collections[activeTab].filter(i => i.id !== id)})}
+                                }} 
+                                onDelete={id => setCollections({...collections, [activeTab]: collections[activeTab].filter(i => i.id !== id)})} 
                                 onUpdateReminder={(id, time) => {
                                     const updated = collections[activeTab].map(item => item.id === id ? { ...item, reminderTime: time, lastPingedAt: null } : item);
                                     setCollections({ ...collections, [activeTab]: updated });
-                                }}
+                                }} 
                             />
                         ))}
                     </div>
@@ -271,11 +250,7 @@
         }
 
         ReactDOM.createRoot(document.getElementById('root')).render(<App />);
-        if ('serviceWorker' in navigator) { 
-            window.addEventListener('load', () => { 
-                navigator.serviceWorker.register('sw.js').then(reg => reg.update()); 
-            }); 
-        }
+        if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').then(reg => reg.update()); }); }
     </script>
 </body>
 </html>
