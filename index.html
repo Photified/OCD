@@ -72,13 +72,6 @@
             { id: 'bell', name: 'Service Bell', url: 'https://cdn.freesound.org/previews/212/212764_1120021-lq.mp3' }
         ];
 
-        const INITIAL_DATA = {
-            "LEAVING": [{ id: 'l1', title: 'Phone, Wallet, Keys', completed: false, reminderTime: null }],
-            "WORKDAY": [{ id: 'w1', title: 'Check Email', completed: false, reminderTime: null }],
-            "BEDTIME": [{ id: 'b1', title: 'Doors Locked', completed: false, reminderTime: null }],
-            "SELF-CARE": [{ id: 's1', title: 'Mindful Minute', completed: false, reminderTime: null }]
-        };
-
         function TaskCard({ task, onComplete, onDelete, onUpdateReminder, settings }) {
             const [isHolding, setIsHolding] = useState(false);
             const timerRef = useRef(null);
@@ -86,6 +79,7 @@
             const audioRef = useRef(new Audio(settings.selectedAudio));
             const holdDuration = settings.holdTime * 1000;
 
+            // PRE-LOAD logic for instant response
             useEffect(() => {
                 audioRef.current = new Audio(settings.selectedAudio);
                 audioRef.current.load();
@@ -96,18 +90,20 @@
                 setIsHolding(true);
                 let startTime = Date.now();
                 
-                // Charge-up Haptics logic
+                // Rhythmic "Charge Up" Haptics
                 hapticInterval.current = setInterval(() => {
                     let elapsed = Date.now() - startTime;
                     let progress = elapsed / holdDuration;
-                    let pulseStrength = 5 + (progress * 20); 
+                    let pulseStrength = 5 + (progress * 25); 
                     if (navigator.vibrate) navigator.vibrate(pulseStrength);
-                }, 80);
+                }, 85);
 
                 timerRef.current = setTimeout(() => {
                     onComplete(task.id, new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
                     stopHold();
-                    if (navigator.vibrate) navigator.vibrate(120); // The Pop
+                    
+                    // The Satisfying Completion "Pop"
+                    if (navigator.vibrate) navigator.vibrate(120);
                     audioRef.current.currentTime = 0;
                     audioRef.current.play();
                 }, holdDuration);
@@ -155,7 +151,11 @@
         }
 
         function App() {
-            const [collections, setCollections] = useState(() => JSON.parse(localStorage.getItem('ocd_pwa_final')) || INITIAL_DATA);
+            const [collections, setCollections] = useState(() => JSON.parse(localStorage.getItem('ocd_pwa_final')) || {
+                "LEAVING": [{ id: 'l1', title: 'Phone, Wallet, Keys', completed: false, reminderTime: null }],
+                "WORKDAY": [{ id: 'w1', title: 'Check Email', completed: false, reminderTime: null }],
+                "BEDTIME": [{ id: 'b1', title: 'Doors Locked', completed: false, reminderTime: null }]
+            });
             const [settings, setSettings] = useState(() => JSON.parse(localStorage.getItem('ocd_settings')) || { holdTime: 2, darkMode: false, selectedAudio: AUDIO_OPTIONS[0].url });
             const [activeTab, setActiveTab] = useState(Object.keys(collections)[0] || "LEAVING");
             const [view, setView] = useState('main');
@@ -195,7 +195,7 @@
                     });
                     return () => sortable.destroy();
                 }
-            }, [activeTab, collections, view]);
+            }, [activeTab, view, collections]);
 
             useEffect(() => {
                 const checkAlarms = setInterval(() => {
@@ -220,14 +220,15 @@
                 return () => clearInterval(checkAlarms);
             }, [collections]);
 
+            // Real-time Swiping Card Logic
             const handleTouchStart = (e) => { startX.current = e.touches[0].clientX; setIsResetting(false); };
-            const handleTouchMove = (e) => { setDragOffset((e.touches[0].clientX - startX.current) * 0.8); };
+            const handleTouchMove = (e) => { setDragOffset((e.touches[0].clientX - startX.current) * 0.85); };
             const handleTouchEnd = () => {
                 const tabs = Object.keys(collections);
                 const currentIndex = tabs.indexOf(activeTab);
                 setIsResetting(true);
-                if (dragOffset < -100 && currentIndex < tabs.length - 1) setActiveTab(tabs[currentIndex + 1]);
-                else if (dragOffset > 100 && currentIndex > 0) setActiveTab(tabs[currentIndex - 1]);
+                if (dragOffset < -110 && currentIndex < tabs.length - 1) setActiveTab(tabs[currentIndex + 1]);
+                else if (dragOffset > 110 && currentIndex > 0) setActiveTab(tabs[currentIndex - 1]);
                 setDragOffset(0);
             };
 
@@ -249,7 +250,7 @@
                 return (
                     <div id="gatekeeper" className={`min-h-screen flex flex-col items-center justify-center text-center p-10 ${settings.darkMode ? 'bg-slate-900 text-white' : 'bg-[#FDFDFD] text-slate-900'}`}>
                         <img src="logo.png" className={`w-40 mb-10 ${settings.darkMode ? 'dark-mode-logo' : ''}`} alt="Logo" />
-                        <h2 className="text-2xl font-black italic mb-2">App Required.</h2>
+                        <h2 className="text-2xl font-black italic mb-2 uppercase">App Required.</h2>
                         <p className="text-slate-500 text-sm font-bold uppercase tracking-widest mb-10 px-6 leading-relaxed">Standalone version required for background pings.</p>
                         {deferredPrompt ? (
                             <button onClick={() => { Notification.requestPermission(); deferredPrompt.prompt(); }} className="bg-indigo-600 text-white w-full max-w-xs py-5 rounded-[2rem] text-xs font-black uppercase shadow-2xl">Download & Install</button>
@@ -259,7 +260,7 @@
             }
 
             return (
-                <div className={`max-w-md mx-auto min-h-screen pt-12 px-6 pb-20 ${settings.darkMode ? 'text-white' : 'text-slate-900'}`}>
+                <div className={`max-w-md mx-auto min-h-screen pt-12 px-6 pb-20 transition-colors duration-300 ${settings.darkMode ? 'text-white' : 'text-slate-900'}`}>
                     {view === 'main' ? (
                         <>
                             {showAddTab && (
@@ -277,13 +278,14 @@
                             )}
 
                             <header className="mb-10 text-center relative flex flex-col items-center">
-                                <div className="absolute top-0 right-0 w-full flex justify-end">
+                                <div className="w-full flex justify-between items-center px-1">
+                                    <div className="w-10"></div>
+                                    <img src="logo.png" className={`header-logo ${settings.darkMode ? 'dark-mode-logo' : ''}`} alt="Logo" />
                                     <button onClick={() => setView('settings')} className="p-2 text-slate-400 hover:text-indigo-600">
-                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
                                     </button>
                                 </div>
-                                <img src="logo.png" className={`header-logo mb-2 mt-4 ${settings.darkMode ? 'dark-mode-logo' : ''}`} alt="Logo" />
-                                <h2 className="text-[10px] font-black tracking-[0.2em] opacity-60 uppercase mb-4">Obsessively Compulsed Daily.</h2>
+                                <h2 className="text-[10px] font-black tracking-[0.2em] opacity-60 uppercase mt-4 mb-4 italic">Obsessively Compulsed Daily.</h2>
                             </header>
 
                             <div className="tab-scroll-area mb-8">
@@ -347,7 +349,7 @@
 
                             <div className="space-y-12">
                                 <section>
-                                    <label className="block text-[10px] font-black uppercase text-slate-400 mb-4 tracking-widest">Anchor Sound Selection</label>
+                                    <label className="block text-[10px] font-black uppercase text-slate-400 mb-4 tracking-widest italic">Anchor Sound Selection</label>
                                     <div className="grid grid-cols-1 gap-2">
                                         {AUDIO_OPTIONS.map(opt => (
                                             <button 
@@ -356,7 +358,7 @@
                                                     setSettings({...settings, selectedAudio: opt.url});
                                                     let a = new Audio(opt.url); a.play();
                                                 }}
-                                                className={`p-4 rounded-xl border text-left flex justify-between items-center transition-colors ${settings.selectedAudio === opt.url ? 'border-indigo-600 bg-indigo-50 text-indigo-700 shadow-md' : (settings.darkMode ? 'border-slate-700 bg-slate-800' : 'border-slate-200')}`}
+                                                className={`p-4 rounded-xl border text-left flex justify-between items-center transition-all ${settings.selectedAudio === opt.url ? 'border-indigo-600 bg-indigo-50 text-indigo-700 shadow-md' : (settings.darkMode ? 'border-slate-700 bg-slate-800' : 'border-slate-200')}`}
                                             >
                                                 <span className="font-black text-xs uppercase italic tracking-wider">{opt.name}</span>
                                                 {settings.selectedAudio === opt.url && <span>✓</span>}
@@ -366,19 +368,19 @@
                                 </section>
 
                                 <section>
-                                    <label className="block text-[10px] font-black uppercase text-slate-400 mb-4 tracking-widest">Hold Duration ({settings.holdTime}s)</label>
+                                    <label className="block text-[10px] font-black uppercase text-slate-400 mb-4 tracking-widest italic">Hold Duration ({settings.holdTime}s)</label>
                                     <input type="range" min="1" max="10" step="1" value={settings.holdTime} onChange={(e) => setSettings({...settings, holdTime: parseInt(e.target.value)})} className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600" />
                                 </section>
 
                                 <section className="flex items-center justify-between">
-                                    <h4 className="font-black uppercase text-sm tracking-tight">Dark Appearance</h4>
+                                    <h4 className="font-black uppercase text-sm tracking-tight italic">Dark Appearance</h4>
                                     <button onClick={() => setSettings({...settings, darkMode: !settings.darkMode})} className={`w-14 h-8 rounded-full transition-colors relative ${settings.darkMode ? 'bg-indigo-600' : 'bg-slate-200'}`}>
                                         <div className={`absolute top-1 w-6 h-6 bg-white rounded-full transition-all ${settings.darkMode ? 'left-7' : 'left-1'}`} />
                                     </button>
                                 </section>
 
                                 <section>
-                                    <button onClick={() => { Notification.requestPermission(); }} className="w-full py-5 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-600 font-black uppercase text-[11px] mb-4">Sync System Notifications</button>
+                                    <button onClick={() => { Notification.requestPermission(); }} className="w-full py-5 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-600 font-black uppercase text-[11px] mb-4">Sync Notifications</button>
                                 </section>
                             </div>
                         </div>
