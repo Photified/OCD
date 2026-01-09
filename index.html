@@ -16,7 +16,6 @@
         input, textarea { -webkit-user-select: text; user-select: text; }
         body { background: #FDFDFD; font-family: sans-serif; overflow-x: hidden; }
         
-        /* Smooth sliding transition for content */
         .slide-container { transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease; }
         .slide-up { animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
         @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
@@ -59,8 +58,7 @@
         const INITIAL_DATA = {
             "LEAVING": [{ id: 'l1', title: 'Phone, Wallet, Keys', completed: false, reminderTime: null }],
             "WORKDAY": [{ id: 'w1', title: 'Check Email', completed: false, reminderTime: null }],
-            "BEDTIME": [{ id: 'b1', title: 'Doors Locked', completed: false, reminderTime: null }],
-            "SELF-CARE": [{ id: 's1', title: 'Mindful Minute', completed: false, reminderTime: null }]
+            "BEDTIME": [{ id: 'b1', title: 'Doors Locked', completed: false, reminderTime: null }]
         };
 
         function TaskCard({ task, onComplete, onDelete, onUpdateReminder, settings }) {
@@ -68,11 +66,6 @@
             const timerRef = useRef(null);
             const hapticInterval = useRef(null);
             const holdDuration = settings.holdTime * 1000;
-
-            const playSuccessSound = () => {
-                const audio = new Audio(settings.selectedAudio || AUDIO_OPTIONS[0].url);
-                audio.play();
-            };
 
             const startHold = () => {
                 if (task.completed) return;
@@ -85,7 +78,7 @@
                     setIsHolding(false);
                     clearInterval(hapticInterval.current);
                     if (navigator.vibrate) navigator.vibrate([30, 50, 60]);
-                    playSuccessSound();
+                    new Audio(settings.selectedAudio || AUDIO_OPTIONS[0].url).play();
                 }, holdDuration);
             };
 
@@ -133,7 +126,7 @@
         function App() {
             const [collections, setCollections] = useState(() => JSON.parse(localStorage.getItem('ocd_pwa_final')) || INITIAL_DATA);
             const [settings, setSettings] = useState(() => JSON.parse(localStorage.getItem('ocd_settings')) || { holdTime: 2, darkMode: false, selectedAudio: AUDIO_OPTIONS[0].url });
-            const [activeTab, setActiveTab] = useState(Object.keys(collections)[0]);
+            const [activeTab, setActiveTab] = useState(Object.keys(collections)[0] || "LEAVING");
             const [view, setView] = useState('main');
             const [text, setText] = useState('');
             const [showAddTab, setShowAddTab] = useState(false);
@@ -171,29 +164,6 @@
                 }
             }, [activeTab, collections, view, isSliding]);
 
-            useEffect(() => {
-                const checkAlarms = setInterval(() => {
-                    const now = new Date();
-                    const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-                    let dataChanged = false;
-                    const newCols = { ...collections };
-                    Object.keys(newCols).forEach(tab => {
-                        newCols[tab] = newCols[tab].map(task => {
-                            if (task.reminderTime === currentTime && !task.completed && !task.lastPingedAt) {
-                                if (Notification.permission === "granted" && navigator.serviceWorker.controller) {
-                                    navigator.serviceWorker.controller.postMessage({ type: 'SHOW_NOTIFICATION', title: 'OCD Anchor', body: task.title });
-                                }
-                                dataChanged = true; return { ...task, lastPingedAt: currentTime };
-                            }
-                            if (task.lastPingedAt && task.lastPingedAt !== currentTime) return { ...task, lastPingedAt: null };
-                            return task;
-                        });
-                    });
-                    if (dataChanged) setCollections(newCols);
-                }, 10000);
-                return () => clearInterval(checkAlarms);
-            }, [collections]);
-
             const switchTab = (newTab) => {
                 if (newTab === activeTab) return;
                 setIsSliding(true);
@@ -230,7 +200,7 @@
 
             if (!isInstalled) {
                 return (
-                    <div id="gatekeeper" className={`min-h-screen flex flex-col items-center justify-center text-center p-10 ${settings.darkMode ? 'bg-slate-900 text-white' : 'bg-[#FDFDFD] text-slate-900'}`}>
+                    <div className={`min-h-screen flex flex-col items-center justify-center text-center p-10 ${settings.darkMode ? 'bg-slate-900 text-white' : 'bg-[#FDFDFD] text-slate-900'}`}>
                         <img src="logo.png" className={`w-40 mb-10 ${settings.darkMode ? 'dark-mode-logo' : ''}`} alt="Logo" />
                         <h2 className="text-2xl font-black italic mb-2">App Required.</h2>
                         <p className="text-slate-500 text-sm font-bold uppercase tracking-widest mb-10 px-6 leading-relaxed">Standalone version required for background pings.</p>
@@ -313,7 +283,7 @@
                                         {resetHolding ? 'Holding to Reset...' : 'Hold 3s to Reset Progress'}
                                     </span>
                                 </button>
-                            </>
+                            </div>
                         </>
                     ) : (
                         <div className="settings-view slide-up">
@@ -360,8 +330,13 @@
             );
         }
 
-        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
-        if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').then(reg => reg.update()); }); }
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+        if ('serviceWorker' in navigator) { 
+            window.addEventListener('load', () => { 
+                navigator.serviceWorker.register('sw.js').then(reg => reg.update()); 
+            }); 
+        }
     </script>
 </body>
 </html>
