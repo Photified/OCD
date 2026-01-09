@@ -68,8 +68,8 @@
             { id: 'ping', name: 'Digital Ping', url: 'https://cdn.freesound.org/previews/263/263133_2064400-lq.mp3' },
             { id: 'chime', name: 'Zen Chime', url: 'https://cdn.freesound.org/previews/320/320655_5260872-lq.mp3' },
             { id: 'success', name: 'Success Sparkle', url: 'https://cdn.freesound.org/previews/270/270404_5123851-lq.mp3' },
-            { id: 'pop', name: 'Soft Pop', url: 'https://cdn.freesound.org/previews/682/682633_14620023-lq.mp3' },
-            { id: 'bell', name: 'Service Bell', url: 'https://cdn.freesound.org/previews/651/651811_13508399-lq.mp3' }
+            { id: 'pop', name: 'Soft Pop', url: 'https://cdn.freesound.org/previews/411/411642_5121236-lq.mp3' },
+            { id: 'bell', name: 'Service Bell', url: 'https://cdn.freesound.org/previews/212/212764_1120021-lq.mp3' }
         ];
 
         const INITIAL_DATA = {
@@ -86,7 +86,6 @@
             const audioRef = useRef(new Audio(settings.selectedAudio));
             const holdDuration = settings.holdTime * 1000;
 
-            // Pre-load audio instantly when selection changes
             useEffect(() => {
                 audioRef.current = new Audio(settings.selectedAudio);
                 audioRef.current.load();
@@ -95,23 +94,20 @@
             const startHold = (e) => {
                 if (task.completed) return;
                 setIsHolding(true);
-                
                 let startTime = Date.now();
                 
-                // Charge-up Haptics: Increases intensity as hold progresses
+                // Charge-up Haptics logic
                 hapticInterval.current = setInterval(() => {
                     let elapsed = Date.now() - startTime;
                     let progress = elapsed / holdDuration;
-                    let pulseStrength = 5 + (progress * 20); // Scale from 5ms to 25ms
+                    let pulseStrength = 5 + (progress * 20); 
                     if (navigator.vibrate) navigator.vibrate(pulseStrength);
                 }, 80);
 
                 timerRef.current = setTimeout(() => {
                     onComplete(task.id, new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
                     stopHold();
-                    
-                    // Final "Pop" Haptic + Instant Audio
-                    if (navigator.vibrate) navigator.vibrate(120);
+                    if (navigator.vibrate) navigator.vibrate(120); // The Pop
                     audioRef.current.currentTime = 0;
                     audioRef.current.play();
                 }, holdDuration);
@@ -281,10 +277,12 @@
                             )}
 
                             <header className="mb-10 text-center relative flex flex-col items-center">
-                                <button onClick={() => setView('settings')} className="absolute right-0 top-0 p-2 text-slate-400 hover:text-indigo-600">
-                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
-                                </button>
-                                <img src="logo.png" className={`header-logo mb-2 ${settings.darkMode ? 'dark-mode-logo' : ''}`} alt="Logo" />
+                                <div className="absolute top-0 right-0 w-full flex justify-end">
+                                    <button onClick={() => setView('settings')} className="p-2 text-slate-400 hover:text-indigo-600">
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+                                    </button>
+                                </div>
+                                <img src="logo.png" className={`header-logo mb-2 mt-4 ${settings.darkMode ? 'dark-mode-logo' : ''}`} alt="Logo" />
                                 <h2 className="text-[10px] font-black tracking-[0.2em] opacity-60 uppercase mb-4">Obsessively Compulsed Daily.</h2>
                             </header>
 
@@ -314,7 +312,7 @@
                                 setText('');
                             }} className="relative mb-10">
                                 <textarea className={`trigger-input w-full p-6 pr-20 rounded-[2rem] border outline-none font-bold text-lg placeholder:text-slate-300 uppercase leading-tight ${settings.darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-100'}`} placeholder="New trigger..." value={text} onChange={e => setText(e.target.value)} />
-                                <button className="absolute right-3 top-1/2 -translate-y-1/2 w-14 h-14 bg-indigo-600 text-white rounded-2xl font-black shadow-lg flex items-center justify-center text-2xl">＋</button>
+                                <button className="absolute right-3 top-1/2 -translate-y-1/2 w-14 h-14 bg-indigo-600 text-white rounded-2xl font-black active:scale-95 transition-transform flex items-center justify-center text-2xl">＋</button>
                             </form>
 
                             <div ref={listRef} className="space-y-4 mb-10">
