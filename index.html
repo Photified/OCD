@@ -63,6 +63,7 @@
                                         type="time" 
                                         value={task.reminderTime || ""} 
                                         onChange={(e) => {
+                                            // Trigger permission request on time change
                                             if (Notification.permission !== "granted") Notification.requestPermission();
                                             onUpdateReminder(task.id, e.target.value);
                                         }} 
@@ -105,10 +106,11 @@
                 window.addEventListener('beforeinstallprompt', (e) => {
                     e.preventDefault();
                     setDeferredPrompt(e);
+                    console.log('Install prompt ready');
                 });
             }, [collections]);
 
-            // Alarm Logic
+            // Alarm Engine
             useEffect(() => {
                 const checkAlarms = setInterval(() => {
                     const now = new Date();
@@ -121,9 +123,10 @@
                             if (task.reminderTime === currentTime && !task.completed && !task.lastPingedAt) {
                                 if (Notification.permission === "granted") {
                                     new Notification("OCD Anchor", { 
-                                        body: `Time to confirm: ${task.title}`,
+                                        body: `Confirmation Required: ${task.title}`,
                                         icon: 'icon.png',
-                                        vibrate: [200, 100, 200]
+                                        vibrate: [200, 100, 200],
+                                        requireInteraction: true // Keep on screen until cleared
                                     });
                                 }
                                 dataChanged = true;
@@ -140,19 +143,9 @@
                 return () => clearInterval(checkAlarms);
             }, [collections]);
 
-            const sendTestPing = () => {
-                if (Notification.permission !== "granted") {
-                    Notification.requestPermission().then(permission => {
-                        if (permission === "granted") new Notification("Test Ping Active");
-                    });
-                } else {
-                    new Notification("Test Ping Active", { body: "Your alarms are working." });
-                }
-            };
-
             const handleInstall = async () => {
                 if (!deferredPrompt) {
-                    alert("Chrome: Tap ⋮ (top right) then 'Install app'.");
+                    alert("To install: Tap the 3 dots (⋮) in the top right and select 'Add to Home screen' or 'Install App'.");
                     return;
                 }
                 deferredPrompt.prompt();
@@ -160,18 +153,31 @@
                 if (outcome === 'accepted') setDeferredPrompt(null);
             };
 
+            const triggerTestPing = () => {
+                if (Notification.permission !== "granted") {
+                    Notification.requestPermission().then(permission => {
+                        if (permission === "granted") new Notification("Notifications Enabled!");
+                    });
+                } else {
+                    new Notification("Test Ping Active", { 
+                        body: "If you see this, your anchors are ready.",
+                        icon: 'icon.png' 
+                    });
+                }
+            };
+
             const progress = (collections[activeTab]?.filter(t => t.completed).length / collections[activeTab]?.length * 100) || 0;
 
             if (!isInstalled) {
                 return (
                     <div id="gatekeeper">
-                        <img src="logo.png" className="w-48 mb-10" alt="OCD Logo" />
+                        <img src="logo.png" className="w-48 mb-8" alt="Logo" />
                         <h2 className="text-2xl font-black italic text-slate-900 mb-2">App Required.</h2>
                         <p className="text-slate-500 text-sm font-bold uppercase tracking-widest mb-10 px-6 leading-relaxed">
-                            Alarms only work in the app version.
+                            Alarms and background pings only function within the installed app version.
                         </p>
                         <button onClick={handleInstall} className="bg-indigo-600 text-white w-full max-w-xs py-5 rounded-[2rem] text-xs font-black uppercase shadow-2xl">
-                            Install App
+                            Install Now
                         </button>
                     </div>
                 );
@@ -180,9 +186,9 @@
             return (
                 <div className="max-w-md mx-auto min-h-screen pt-12 px-6 pb-20">
                     <header className="mb-10 text-center relative">
-                        <img src="logo.png" className="w-32 mx-auto mb-4" alt="OCD Logo" />
+                        <img src="logo.png" className="w-32 mx-auto mb-4" alt="Logo" />
                         <button 
-                            onClick={sendTestPing} 
+                            onClick={triggerTestPing}
                             className="absolute right-0 top-0 text-[10px] font-black text-indigo-600 uppercase bg-indigo-50 px-3 py-1 rounded-full"
                         >
                             Test Ping
@@ -222,7 +228,7 @@
                                 }}
                                 onDelete={id => setCollections({...collections, [activeTab]: collections[activeTab].filter(i => i.id !== id)})}
                                 onUpdateReminder={(id, time) => {
-                                    const updated = collections[activeTab].map(t => t.id === id ? { ...t, reminderTime: time, lastPingedAt: null } : t);
+                                    const updated = collections[activeTab].map(item => item.id === id ? { ...item, reminderTime: time, lastPingedAt: null } : item);
                                     setCollections({ ...collections, [activeTab]: updated });
                                 }}
                             />
@@ -233,7 +239,14 @@
         }
 
         ReactDOM.createRoot(document.getElementById('root')).render(<App />);
-        if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js'); }); }
+        if ('serviceWorker' in navigator) { 
+            window.addEventListener('load', () => { 
+                navigator.serviceWorker.register('sw.js').then(reg => {
+                    console.log('SW Registered');
+                    reg.update(); // Force update check
+                }); 
+            }); 
+        }
     </script>
 </body>
 </html>
