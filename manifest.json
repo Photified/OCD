@@ -25,20 +25,20 @@
       "type": "image/png"
     }
   ],
-  "screenshots": [
+"screenshots": [
     {
       "src": "screenshot1.png",
       "sizes": "1080x1920",
       "type": "image/png",
-      "label": "Main Task View",
-      "platform": "narrow"
+      "form_factor": "narrow",
+      "label": "Daily Task View"
     },
     {
       "src": "screenshot2.png",
       "sizes": "1080x1920",
       "type": "image/png",
-      "label": "Settings and Customization",
-      "platform": "narrow"
+      "form_factor": "narrow",
+      "label": "Settings and Anchoring"
     }
   ]
 }
