@@ -102,11 +102,10 @@
                 window.addEventListener('beforeinstallprompt', (e) => {
                     e.preventDefault();
                     setDeferredPrompt(e);
-                    console.log('Install prompt detected');
                 });
             }, [collections]);
 
-            // Alarm Logic
+            // Robust Alarm Engine
             useEffect(() => {
                 const checkAlarms = setInterval(() => {
                     const now = new Date();
@@ -118,11 +117,13 @@
                         newCollections[tab] = newCollections[tab].map(task => {
                             if (task.reminderTime === currentTime && !task.completed && !task.lastPingedAt) {
                                 if (Notification.permission === "granted") {
-                                    new Notification("OCD Anchor", { 
-                                        body: `Time to confirm: ${task.title}`,
-                                        icon: 'icon.png',
-                                        vibrate: [200, 100, 200],
-                                        requireInteraction: true 
+                                    navigator.serviceWorker.ready.then(reg => {
+                                        reg.showNotification("OCD Anchor", { 
+                                            body: `Time to confirm: ${task.title}`,
+                                            icon: 'icon.png',
+                                            vibrate: [200, 100, 200],
+                                            requireInteraction: true 
+                                        });
                                     });
                                 }
                                 dataChanged = true;
@@ -142,7 +143,15 @@
             const triggerTest = () => {
                 Notification.requestPermission().then(perm => {
                     if (perm === "granted") {
-                        new Notification("Alarms Active", { body: "Your Pixel is now synced with Anchors.", icon: 'icon.png' });
+                        navigator.serviceWorker.ready.then(reg => {
+                            reg.showNotification("Alarms Active", { 
+                                body: "Your Pixel 9 is now synced with Anchors.", 
+                                icon: 'icon.png',
+                                vibrate: [200, 100, 200]
+                            });
+                        });
+                    } else {
+                        alert("Notifications are blocked in system settings.");
                     }
                 });
             };
@@ -162,7 +171,7 @@
                         <img src="logo.png" className="w-48 mb-10" alt="Logo" />
                         <h2 className="text-2xl font-black italic text-slate-900 mb-2">App Required.</h2>
                         <p className="text-slate-500 text-sm font-bold uppercase tracking-widest mb-10 px-6 leading-relaxed">
-                            Alarms only function within the standalone app version.
+                            Pings only work in the standalone app version.
                         </p>
                         {deferredPrompt ? (
                             <button 
@@ -237,9 +246,7 @@
         ReactDOM.createRoot(document.getElementById('root')).render(<App />);
         if ('serviceWorker' in navigator) { 
             window.addEventListener('load', () => { 
-                navigator.serviceWorker.register('sw.js').then(reg => {
-                    reg.update();
-                }); 
+                navigator.serviceWorker.register('sw.js').then(reg => reg.update()); 
             }); 
         }
     </script>

@@ -3,7 +3,7 @@ self.addEventListener('install', (e) => {
 });
 
 self.addEventListener('activate', (e) => {
-  e.waitUntil(clients.claim()); // Take control of the page immediately
+  e.waitUntil(clients.claim());
 });
 
 self.addEventListener('notificationclick', (event) => {
