@@ -14,9 +14,6 @@
     <style>
         body { background: #FDFDFD; font-family: sans-serif; overflow-x: hidden; }
         .progress-fill { transition: width 3s linear; }
-        .ocd-logo { font-size: 7rem; line-height: 0.7; letter-spacing: -0.18em; font-weight: 900; display: inline-block; color: #0f172a; font-style: italic; }
-        .ocd-logo .letter-c { color: #4f46e5; position: relative; z-index: 10; }
-        
         #gatekeeper {
             position: fixed;
             inset: 0;
@@ -26,10 +23,8 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            text-align: center;
             padding: 2rem;
         }
-        
         .tab-scroll-area { display: flex; overflow-x: auto; padding-bottom: 14px; gap: 12px; scrollbar-width: none; }
         .tab-scroll-area::-webkit-scrollbar { display: none; }
     </style>
@@ -103,7 +98,6 @@
                     const standalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
                     setIsInstalled(standalone);
                 };
-                
                 checkStatus();
                 localStorage.setItem('ocd_pwa_final', JSON.stringify(collections));
 
@@ -113,6 +107,7 @@
                 });
             }, [collections]);
 
+            // Robust Ping Engine
             useEffect(() => {
                 const checkAlarms = setInterval(() => {
                     const now = new Date();
@@ -123,11 +118,23 @@
                     Object.keys(newCollections).forEach(tab => {
                         newCollections[tab] = newCollections[tab].map(task => {
                             if (task.reminderTime === currentTime && !task.completed && !task.lastPingedAt) {
-                                if ("Notification" in window && Notification.permission === "granted") {
-                                    new Notification("OCD Reminder", { body: `Time to confirm: ${task.title}` });
+                                // Request permission if not already granted
+                                if (Notification.permission === "default") {
+                                    Notification.requestPermission();
+                                }
+                                if (Notification.permission === "granted") {
+                                    new Notification("OCD Anchor Reminder", { 
+                                        body: `Confirming: ${task.title}`,
+                                        icon: 'icon.png',
+                                        badge: 'icon.png'
+                                    });
                                 }
                                 dataChanged = true;
                                 return { ...task, lastPingedAt: currentTime };
+                            }
+                            // Reset ping for the next day
+                            if (task.lastPingedAt && task.lastPingedAt !== currentTime) {
+                                return { ...task, lastPingedAt: null };
                             }
                             return task;
                         });
@@ -139,7 +146,7 @@
 
             const handleInstall = async () => {
                 if (!deferredPrompt) {
-                    alert("Please open your browser menu and select 'Install App' or 'Add to Home Screen'.");
+                    alert("Please use Chrome Menu > Install App");
                     return;
                 }
                 deferredPrompt.prompt();
@@ -152,16 +159,12 @@
             if (!isInstalled) {
                 return (
                     <div id="gatekeeper">
-                        <div className="ocd-logo mb-6"><span>O</span><span className="letter-c">C</span><span className="letter-d">D</span></div>
+                        <img src="logo.png" className="w-48 mb-8" alt="OCD Logo" />
                         <h2 className="text-2xl font-black italic text-slate-900 mb-2">App Required.</h2>
                         <p className="text-slate-500 text-sm font-bold uppercase tracking-widest mb-10 px-6 leading-relaxed">
-                            For alarm pings and memory anchors to work, you must use the installed app version.
+                            For alarm pings and anchors to work, you must install the app.
                         </p>
-                        
-                        <button 
-                            onClick={handleInstall} 
-                            className="bg-indigo-600 text-white w-full max-w-xs py-5 rounded-[2rem] text-xs font-black uppercase shadow-2xl active:scale-95 transition-all"
-                        >
+                        <button onClick={handleInstall} className="bg-indigo-600 text-white w-full max-w-xs py-5 rounded-[2rem] text-xs font-black uppercase shadow-2xl">
                             Download & Install
                         </button>
                     </div>
@@ -170,14 +173,14 @@
 
             return (
                 <div className="max-w-md mx-auto min-h-screen pt-12 px-6 pb-20">
-                    <header className="mb-10 text-center">
-                        <div className="ocd-logo mb-4"><span>O</span><span className="letter-c">C</span><span className="letter-d">D</span></div>
+                    <header className="mb-10 text-center flex flex-col items-center">
+                        <img src="logo.png" className="w-40 mb-4" alt="OCD Logo" />
                         <h1 className="text-2xl font-black italic text-slate-900">Anchors.</h1>
                     </header>
 
                     <div className="tab-scroll-area mb-8">
                         {Object.keys(collections).map(tab => (
-                            <button key={tab} onClick={() => setActiveTab(tab)} className={`px-6 py-3 rounded-full text-[11px] font-black uppercase border whitespace-nowrap ${activeTab === tab ? 'bg-indigo-600 text-white border-indigo-700' : 'bg-slate-50 text-slate-400 border-slate-100'}`}>{tab}</button>
+                            <button key={tab} onClick={() => setActiveTab(tab)} className={`px-6 py-3 rounded-full text-[11px] font-black uppercase border whitespace-nowrap ${activeTab === tab ? 'bg-indigo-600 text-white border-indigo-700 shadow-md' : 'bg-slate-50 text-slate-400 border-slate-100'}`}>{tab}</button>
                         ))}
                     </div>
 
@@ -207,7 +210,7 @@
                                 }}
                                 onDelete={id => setCollections({...collections, [activeTab]: collections[activeTab].filter(i => i.id !== id)})}
                                 onUpdateReminder={(id, time) => {
-                                    const updated = collections[activeTab].map(t => t.id === id ? { ...t, reminderTime: time } : t);
+                                    const updated = collections[activeTab].map(t => t.id === id ? { ...t, reminderTime: time, lastPingedAt: null } : t);
                                     setCollections({ ...collections, [activeTab]: updated });
                                 }}
                             />
