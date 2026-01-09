@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>OCD - Daily Anchors</title>
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#0f172a">
+    <meta name="theme-color" content="#FDFDFD">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -17,7 +17,6 @@
         .ocd-logo { font-size: 7rem; line-height: 0.7; letter-spacing: -0.18em; font-weight: 900; display: inline-block; color: #0f172a; font-style: italic; }
         .ocd-logo .letter-c { color: #4f46e5; position: relative; z-index: 10; }
         
-        /* Full Screen Gatekeeper Styling */
         #gatekeeper {
             position: fixed;
             inset: 0;
@@ -72,7 +71,7 @@
                             {!task.completed && (
                                 <div className="flex items-center gap-2 mt-1">
                                     <span className="text-[10px] font-black text-indigo-400 uppercase">Ping:</span>
-                                    <input type="time" value={task.reminderTime || ""} onChange={(e) => onUpdateReminder(task.id, e.target.value)} className="text-[10px] font-bold bg-slate-100 rounded px-1 outline-none"/>
+                                    <input type="time" value={task.reminderTime || ""} onChange={(e) => onUpdateReminder(task.id, e.target.value)} className="text-[10px] font-bold bg-slate-100 rounded px-1 outline-none border-none"/>
                                 </div>
                             )}
                         </div>
@@ -96,11 +95,10 @@
             const [collections, setCollections] = useState(() => JSON.parse(localStorage.getItem('ocd_pwa_final')) || INITIAL_DATA);
             const [activeTab, setActiveTab] = useState(Object.keys(collections)[0]);
             const [text, setText] = useState('');
-            const [isInstalled, setIsInstalled] = useState(true); // Default to true to prevent flickering
+            const [isInstalled, setIsInstalled] = useState(true); 
             const [deferredPrompt, setDeferredPrompt] = useState(null);
 
             useEffect(() => {
-                // 1. Check if running in Standalone mode
                 const checkStatus = () => {
                     const standalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
                     setIsInstalled(standalone);
@@ -109,14 +107,12 @@
                 checkStatus();
                 localStorage.setItem('ocd_pwa_final', JSON.stringify(collections));
 
-                // 2. Capture Install Prompt
                 window.addEventListener('beforeinstallprompt', (e) => {
                     e.preventDefault();
                     setDeferredPrompt(e);
                 });
             }, [collections]);
 
-            // Alarm Engine
             useEffect(() => {
                 const checkAlarms = setInterval(() => {
                     const now = new Date();
@@ -143,7 +139,7 @@
 
             const handleInstall = async () => {
                 if (!deferredPrompt) {
-                    alert("Please use the 'Install App' or 'Add to Home Screen' option in your browser menu.");
+                    alert("Please open your browser menu and select 'Install App' or 'Add to Home Screen'.");
                     return;
                 }
                 deferredPrompt.prompt();
@@ -153,31 +149,25 @@
 
             const progress = (collections[activeTab]?.filter(t => t.completed).length / collections[activeTab]?.length * 100) || 0;
 
-            // If not installed, show FULL SCREEN gatekeeper
             if (!isInstalled) {
                 return (
                     <div id="gatekeeper">
                         <div className="ocd-logo mb-6"><span>O</span><span className="letter-c">C</span><span className="letter-d">D</span></div>
                         <h2 className="text-2xl font-black italic text-slate-900 mb-2">App Required.</h2>
-                        <p className="text-slate-500 text-sm font-bold uppercase tracking-widest mb-10 px-4 leading-relaxed">
+                        <p className="text-slate-500 text-sm font-bold uppercase tracking-widest mb-10 px-6 leading-relaxed">
                             For alarm pings and memory anchors to work, you must use the installed app version.
                         </p>
                         
                         <button 
                             onClick={handleInstall} 
-                            className="bg-indigo-600 text-white w-full max-w-xs py-5 rounded-[2rem] text-xs font-black uppercase shadow-2xl active:scale-95 transition-all mb-4"
+                            className="bg-indigo-600 text-white w-full max-w-xs py-5 rounded-[2rem] text-xs font-black uppercase shadow-2xl active:scale-95 transition-all"
                         >
                             Download & Install
                         </button>
-                        
-                        <p className="text-[10px] text-slate-400 px-8">
-                            Pixel Users: Tap "Download" or find "Install App" in the Chrome menu (⋮).
-                        </p>
                     </div>
                 );
             }
 
-            // Normal App UI
             return (
                 <div className="max-w-md mx-auto min-h-screen pt-12 px-6 pb-20">
                     <header className="mb-10 text-center">
