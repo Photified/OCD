@@ -12,25 +12,18 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <style>
-        body { background: #FDFDFD; font-family: sans-serif; overflow-x: hidden; }
-        .progress-fill { transition: width 3s linear; }
-        #gatekeeper {
-            position: fixed; inset: 0; background: #FDFDFD; z-index: 9999;
-            display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem;
-        }
+        .progress-fill { transition: width var(--hold-time) linear; }
         .slide-up { animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
         @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
         .tab-scroll-area { display: flex; overflow-x: auto; padding-bottom: 14px; gap: 12px; scrollbar-width: none; }
         .tab-scroll-area::-webkit-scrollbar { display: none; }
         .header-logo { width: 120px; height: auto; object-fit: contain; }
-        
-        /* FIXED CENTERED PROGRESS STYLING */
         .progress-container { width: 80px; height: 80px; position: relative; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-        .progress-text { position: absolute; font-size: 14px; font-weight: 900; color: #0f172a; z-index: 10; pointer-events: none; }
+        .progress-text { position: absolute; font-size: 14px; font-weight: 900; z-index: 10; pointer-events: none; }
         .drag-handle { cursor: grab; padding: 4px; }
     </style>
 </head>
-<body>
+<body class="transition-colors duration-300">
     <div id="root"></div>
 
     <script type="text/babel">
@@ -43,9 +36,10 @@
             "SELF-CARE": [{ id: 's1', title: 'Mindful Minute', completed: false, reminderTime: null }]
         };
 
-        function TaskCard({ task, onComplete, onDelete, onUpdateReminder }) {
+        function TaskCard({ task, onComplete, onDelete, onUpdateReminder, settings }) {
             const [isHolding, setIsHolding] = useState(false);
             const timerRef = useRef(null);
+            const holdDuration = settings.holdTime * 1000;
 
             const startHold = () => {
                 if (task.completed) return;
@@ -54,24 +48,24 @@
                     onComplete(task.id, new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
                     setIsHolding(false);
                     if (navigator.vibrate) navigator.vibrate(60);
-                }, 3000);
+                }, holdDuration);
             };
 
             const cancelHold = () => { setIsHolding(false); clearTimeout(timerRef.current); };
 
             return (
-                <div className="task-item mb-3 p-6 rounded-[2.5rem] border bg-white border-slate-200 shadow-sm transition-all duration-500">
+                <div className={`task-item mb-3 p-6 rounded-[2.5rem] border shadow-sm transition-all duration-500 ${settings.darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
                     <div className="flex justify-between items-start mb-2 px-1">
                         <div className="flex items-center gap-4">
                             <div className="drag-handle text-slate-400">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/></svg>
                             </div>
                             <div className="flex flex-col">
-                                <span className={`text-lg font-bold ${task.completed ? 'text-slate-400' : 'text-slate-900'}`}>{task.title}</span>
+                                <span className={`text-lg font-bold ${task.completed ? 'text-slate-500' : (settings.darkMode ? 'text-white' : 'text-slate-900')}`}>{task.title}</span>
                                 {!task.completed && (
                                     <div className="flex items-center gap-2 mt-1">
                                         <span className="text-[10px] font-black text-indigo-400 uppercase">Ping:</span>
-                                        <input type="time" value={task.reminderTime || ""} onChange={(e) => onUpdateReminder(task.id, e.target.value)} className="text-[10px] font-bold bg-slate-100 rounded px-1 outline-none border-none"/>
+                                        <input type="time" value={task.reminderTime || ""} onChange={(e) => onUpdateReminder(task.id, e.target.value)} className={`text-[10px] font-bold rounded px-1 outline-none border-none ${settings.darkMode ? 'bg-slate-700 text-white' : 'bg-slate-100'}`}/>
                                     </div>
                                 )}
                                 {task.completed && <span className="text-[10px] font-black text-indigo-600 uppercase mt-1 italic">Confirmed at {task.confirmedAt}</span>}
@@ -80,13 +74,13 @@
                         <button onClick={() => onDelete(task.id)} className="text-slate-300 font-bold p-2">✕</button>
                     </div>
                     {!task.completed ? (
-                        <button onMouseDown={startHold} onMouseUp={cancelHold} onTouchStart={startHold} onTouchEnd={cancelHold} className="relative w-full py-5 bg-slate-50 rounded-2xl overflow-hidden border border-slate-100">
-                            <div className={`absolute left-0 top-0 h-full bg-indigo-600 opacity-20 ${isHolding ? 'progress-fill' : ''}`} style={{ width: isHolding ? '100%' : '0%' }} />
-                            <span className="relative z-10 text-[11px] font-black uppercase text-slate-500 italic">Hold 3s to Confirm</span>
+                        <button onMouseDown={startHold} onMouseUp={cancelHold} onTouchStart={startHold} onTouchEnd={cancelHold} className={`relative w-full py-5 rounded-2xl overflow-hidden border ${settings.darkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-100'}`}>
+                            <div className={`absolute left-0 top-0 h-full bg-indigo-600 opacity-20 ${isHolding ? 'progress-fill' : ''}`} style={{ width: isHolding ? '100%' : '0%', transitionDuration: `${holdDuration}ms` }} />
+                            <span className="relative z-10 text-[11px] font-black uppercase text-slate-500 italic">Hold {settings.holdTime}s to Confirm</span>
                         </button>
                     ) : (
-                        <div className="w-full py-4 bg-indigo-50 border border-indigo-100 rounded-2xl flex items-center justify-center">
-                            <span className="text-[11px] font-black uppercase text-indigo-700 italic">✓ Memory Stored</span>
+                        <div className={`w-full py-4 border rounded-2xl flex items-center justify-center ${settings.darkMode ? 'bg-indigo-900/20 border-indigo-800 text-indigo-400' : 'bg-indigo-50 border-indigo-100 text-indigo-700'}`}>
+                            <span className="text-[11px] font-black uppercase italic">✓ Memory Stored</span>
                         </div>
                     )}
                 </div>
@@ -95,25 +89,29 @@
 
         function App() {
             const [collections, setCollections] = useState(() => JSON.parse(localStorage.getItem('ocd_pwa_final')) || INITIAL_DATA);
+            const [settings, setSettings] = useState(() => JSON.parse(localStorage.getItem('ocd_settings')) || { holdTime: 3, darkMode: false });
             const [activeTab, setActiveTab] = useState(Object.keys(collections)[0]);
+            const [view, setView] = useState('main'); // 'main' or 'settings'
             const [text, setText] = useState('');
             const [showAddTab, setShowAddTab] = useState(false);
             const [newTabName, setNewTabName] = useState('');
             const [isInstalled, setIsInstalled] = useState(true); 
             const [deferredPrompt, setDeferredPrompt] = useState(null);
-            const [notifStatus, setNotifStatus] = useState(Notification.permission);
+            const [resetHolding, setResetHolding] = useState(false);
             const listRef = useRef(null);
+            const resetTimerRef = useRef(null);
 
             useEffect(() => {
                 const standalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
                 setIsInstalled(standalone);
                 localStorage.setItem('ocd_pwa_final', JSON.stringify(collections));
+                localStorage.setItem('ocd_settings', JSON.stringify(settings));
+                document.body.className = settings.darkMode ? 'bg-slate-900 text-white' : 'bg-[#FDFDFD] text-slate-900';
                 window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); setDeferredPrompt(e); });
-            }, [collections]);
+            }, [collections, settings]);
 
-            // Drag-and-Drop Sorting
             useEffect(() => {
-                if (listRef.current) {
+                if (listRef.current && view === 'main') {
                     const sortable = Sortable.create(listRef.current, {
                         handle: '.drag-handle', animation: 150,
                         onEnd: (evt) => {
@@ -125,28 +123,21 @@
                     });
                     return () => sortable.destroy();
                 }
-            }, [activeTab, collections]);
+            }, [activeTab, collections, view]);
 
-            // Alarm Engine
             useEffect(() => {
                 const checkAlarms = setInterval(() => {
                     const now = new Date();
                     const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
                     let dataChanged = false;
                     const newCollections = { ...collections };
-
                     Object.keys(newCollections).forEach(tab => {
                         newCollections[tab] = newCollections[tab].map(task => {
                             if (task.reminderTime === currentTime && !task.completed && !task.lastPingedAt) {
                                 if (Notification.permission === "granted" && navigator.serviceWorker.controller) {
-                                    navigator.serviceWorker.controller.postMessage({
-                                        type: 'SHOW_NOTIFICATION',
-                                        title: 'OCD Anchor',
-                                        body: task.title // USER TEXT ONLY
-                                    });
+                                    navigator.serviceWorker.controller.postMessage({ type: 'SHOW_NOTIFICATION', title: 'OCD Anchor', body: task.title });
                                 }
-                                dataChanged = true;
-                                return { ...task, lastPingedAt: currentTime };
+                                dataChanged = true; return { ...task, lastPingedAt: currentTime };
                             }
                             if (task.lastPingedAt && task.lastPingedAt !== currentTime) return { ...task, lastPingedAt: null };
                             return task;
@@ -157,35 +148,26 @@
                 return () => clearInterval(checkAlarms);
             }, [collections]);
 
-            const triggerTest = () => {
-                Notification.requestPermission().then(perm => {
-                    setNotifStatus(perm);
-                    if (perm === "granted" && navigator.serviceWorker.controller) {
-                        navigator.serviceWorker.controller.postMessage({ type: 'SHOW_NOTIFICATION', title: 'Alarms Ready', body: 'This is how your pings look.' });
-                    }
-                });
+            const startResetHold = () => {
+                setResetHolding(true);
+                resetTimerRef.current = setTimeout(() => {
+                    const updatedSet = collections[activeTab].map(t => ({...t, completed: false, confirmedAt: null}));
+                    setCollections({...collections, [activeTab]: updatedSet});
+                    setResetHolding(false);
+                    if (navigator.vibrate) navigator.vibrate(100);
+                }, 3000);
             };
 
-            const resetConfirmed = () => {
-                const updatedSet = collections[activeTab].map(t => ({...t, completed: false, confirmedAt: null}));
-                setCollections({...collections, [activeTab]: updatedSet});
-            };
-
-            const handleInstall = async () => {
-                if (!deferredPrompt) return;
-                deferredPrompt.prompt();
-                const { outcome } = await deferredPrompt.userChoice;
-                if (outcome === 'accepted') setDeferredPrompt(null);
-            };
+            const cancelResetHold = () => { setResetHolding(false); clearTimeout(resetTimerRef.current); };
 
             const progress = (collections[activeTab]?.filter(t => t.completed).length / collections[activeTab]?.length * 100) || 0;
 
             if (!isInstalled) {
                 return (
-                    <div id="gatekeeper">
+                    <div id="gatekeeper" className={settings.darkMode ? 'bg-slate-900' : 'bg-[#FDFDFD]'}>
                         <img src="logo.png" className="w-40 mb-10" alt="Logo" />
-                        <h2 className="text-2xl font-black italic text-slate-900 mb-2">App Required.</h2>
-                        <p className="text-slate-500 text-sm font-bold uppercase tracking-widest mb-10 px-6 leading-relaxed text-center">Standalone version required for clean background pings.</p>
+                        <h2 className="text-2xl font-black italic mb-2">App Required.</h2>
+                        <p className="text-slate-500 text-sm font-bold uppercase tracking-widest mb-10 px-6 leading-relaxed text-center text-center">Standalone version required for background pings.</p>
                         {deferredPrompt ? (
                             <button onClick={() => { Notification.requestPermission(); deferredPrompt.prompt(); }} className="bg-indigo-600 text-white w-full max-w-xs py-5 rounded-[2rem] text-xs font-black uppercase shadow-2xl">Download & Install</button>
                         ) : ( <p className="text-[10px] text-slate-400 uppercase font-bold">Tap ⋮ (Top Right) > Install App</p> )}
@@ -194,79 +176,108 @@
             }
 
             return (
-                <div className="max-w-md mx-auto min-h-screen pt-12 px-6 pb-20">
-                    {showAddTab && (
-                        <div className="fixed inset-0 bg-slate-900/40 z-50 flex items-end justify-center p-4 backdrop-blur-sm">
-                            <div className="bg-white w-full rounded-[3rem] p-8 shadow-2xl slide-up border border-slate-300">
-                                <h3 className="text-2xl font-black mb-6 text-center italic text-slate-900 uppercase">New Set</h3>
-                                <input autoFocus className="w-full p-5 rounded-[1.5rem] bg-slate-100 border-2 border-slate-200 outline-none font-bold mb-4" placeholder="Name..." value={newTabName} onChange={e => setNewTabName(e.target.value)} />
-                                <button onClick={() => {
-                                    const upper = newTabName.toUpperCase().trim();
-                                    if(upper) { setCollections({...collections, [upper]: []}); setActiveTab(upper); setNewTabName(''); setShowAddTab(false); }
-                                }} className="w-full py-5 bg-indigo-600 text-white rounded-[1.5rem] font-black uppercase text-[12px]">Create Set</button>
-                                <button onClick={() => setShowAddTab(false)} className="w-full py-4 text-slate-500 font-black text-[12px] uppercase">Cancel</button>
+                <div className={`max-w-md mx-auto min-h-screen pt-12 px-6 pb-20 ${settings.darkMode ? 'text-white' : 'text-slate-900'}`}>
+                    {view === 'main' ? (
+                        <>
+                            {showAddTab && (
+                                <div className="fixed inset-0 bg-slate-900/60 z-50 flex items-end justify-center p-4 backdrop-blur-sm">
+                                    <div className={`${settings.darkMode ? 'bg-slate-800' : 'bg-white'} w-full rounded-[3rem] p-8 shadow-2xl slide-up border ${settings.darkMode ? 'border-slate-700' : 'border-slate-300'}`}>
+                                        <h3 className="text-2xl font-black mb-6 text-center italic uppercase">New Set</h3>
+                                        <input autoFocus className={`w-full p-5 rounded-[1.5rem] border-2 outline-none font-bold mb-4 ${settings.darkMode ? 'bg-slate-700 border-slate-600 text-white' : 'bg-slate-100 border-slate-200'}`} placeholder="Name..." value={newTabName} onChange={e => setNewTabName(e.target.value)} />
+                                        <button onClick={() => {
+                                            const upper = newTabName.toUpperCase().trim();
+                                            if(upper) { setCollections({...collections, [upper]: []}); setActiveTab(upper); setNewTabName(''); setShowAddTab(false); }
+                                        }} className="w-full py-5 bg-indigo-600 text-white rounded-[1.5rem] font-black uppercase text-[12px]">Create Set</button>
+                                        <button onClick={() => setShowAddTab(false)} className="w-full py-4 text-slate-500 font-black text-[12px] uppercase">Cancel</button>
+                                    </div>
+                                </div>
+                            )}
+
+                            <header className="mb-10 text-center relative flex flex-col items-center">
+                                <button onClick={() => setView('settings')} className="absolute right-0 top-0 p-2 text-slate-400 hover:text-indigo-600">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+                                </button>
+                                <img src="logo.png" className="header-logo mb-2" alt="Logo" />
+                                <h1 className="text-2xl font-black italic leading-tight">Anchors.</h1>
+                            </header>
+
+                            <div className="tab-scroll-area mb-8">
+                                {Object.keys(collections).map(tab => (
+                                    <button key={tab} onClick={() => setActiveTab(tab)} className={`px-6 py-3 rounded-full text-[11px] font-black uppercase border whitespace-nowrap ${activeTab === tab ? 'bg-indigo-600 text-white border-indigo-700 shadow-md' : (settings.darkMode ? 'bg-slate-800 text-slate-500 border-slate-700' : 'bg-slate-100 text-slate-500 border-slate-200')}`}>{tab}</button>
+                                ))}
+                                <button onClick={() => setShowAddTab(true)} className={`px-5 py-3 rounded-full border font-black flex-shrink-0 ${settings.darkMode ? 'bg-slate-800 text-slate-400 border-slate-700' : 'bg-slate-200 text-slate-700 border-slate-300'}`}>+</button>
+                            </div>
+
+                            <div className={`mb-10 flex items-center gap-5 border p-8 rounded-[3rem] shadow-sm ${settings.darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}>
+                                <div className="progress-container">
+                                    <div className={`progress-text ${settings.darkMode ? 'text-white' : 'text-slate-900'}`}>{Math.round(progress)}%</div>
+                                    <svg width="80" height="80" viewBox="0 0 80 80" className="absolute -rotate-90">
+                                        <circle cx="40" cy="40" r="34" fill="none" stroke={settings.darkMode ? '#334155' : '#f1f5f9'} strokeWidth="6" />
+                                        <circle cx="40" cy="40" r="34" fill="none" stroke="#6366f1" strokeWidth="6" strokeDasharray="213.6" strokeDashoffset={213.6 - (213.6 * progress) / 100} style={{transition: 'stroke-dashoffset 0.8s ease-out'}} />
+                                    </svg>
+                                </div>
+                                <p className="text-3xl font-black italic truncate uppercase">{activeTab}</p>
+                            </div>
+
+                            <form onSubmit={(e) => {
+                                e.preventDefault(); if(!text.trim()) return;
+                                setCollections({...collections, [activeTab]: [{id: Date.now().toString(), title: text, completed: false, reminderTime: null}, ...collections[activeTab]]});
+                                setText('');
+                            }} className="relative mb-10">
+                                <input className={`w-full p-6 rounded-[2rem] border outline-none font-bold text-lg placeholder:text-slate-300 text-center uppercase ${settings.darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-100'}`} placeholder="New trigger..." value={text} onChange={e => setText(e.target.value)} />
+                                <button className="absolute right-3 top-3 bottom-3 px-6 bg-indigo-600 text-white rounded-2xl font-black active:scale-95 transition-transform">＋</button>
+                            </form>
+
+                            <div ref={listRef} className="space-y-4 mb-10">
+                                {(collections[activeTab] || []).map(t => (
+                                    <TaskCard key={t.id} task={t} settings={settings} onComplete={(id, time) => {
+                                            const updated = collections[activeTab].map(item => item.id === id ? {...item, completed: true, confirmedAt: time} : item);
+                                            setCollections({...collections, [activeTab]: updated});
+                                        }} onDelete={id => setCollections({...collections, [activeTab]: collections[activeTab].filter(i => i.id !== id)})} onUpdateReminder={(id, time) => {
+                                            const updated = collections[activeTab].map(item => item.id === id ? { ...item, reminderTime: time, lastPingedAt: null } : item);
+                                            setCollections({ ...collections, [activeTab]: updated });
+                                        }} />
+                                ))}
+                            </div>
+
+                            <button onMouseDown={startResetHold} onMouseUp={cancelResetHold} onTouchStart={startResetHold} onTouchEnd={cancelResetHold} className="relative w-full py-5 rounded-[2rem] overflow-hidden border transition-all active:scale-95 border-slate-200">
+                                <div className={`absolute left-0 top-0 h-full bg-red-600 opacity-20 ${resetHolding ? 'progress-fill' : ''}`} style={{ width: resetHolding ? '100%' : '0%', transitionDuration: '3000ms' }} />
+                                <span className="relative z-10 text-[10px] font-black uppercase tracking-widest text-slate-400 italic">
+                                    {resetHolding ? 'Holding to Reset...' : 'Hold 3s to Reset Progress'}
+                                </span>
+                            </button>
+                        </>
+                    ) : (
+                        <div className="settings-view slide-up">
+                            <header className="flex items-center justify-between mb-12">
+                                <h2 className="text-3xl font-black italic uppercase">Options</h2>
+                                <button onClick={() => setView('main')} className="p-2 font-black text-indigo-600 uppercase text-xs">Back</button>
+                            </header>
+
+                            <div className="space-y-12">
+                                <section>
+                                    <label className="block text-[10px] font-black uppercase text-slate-400 mb-4 tracking-widest">Hold Confirmation Time ({settings.holdTime}s)</label>
+                                    <input type="range" min="1" max="10" step="1" value={settings.holdTime} onChange={(e) => setSettings({...settings, holdTime: parseInt(e.target.value)})} className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600" />
+                                    <div className="flex justify-between mt-2 text-[9px] font-bold text-slate-400"><span>1s</span><span>10s</span></div>
+                                </section>
+
+                                <section className="flex items-center justify-between">
+                                    <div>
+                                        <h4 className="font-black uppercase text-sm tracking-tight">Dark Appearance</h4>
+                                        <p className="text-[10px] text-slate-500 font-bold uppercase mt-1">Easier on the eyes</p>
+                                    </div>
+                                    <button onClick={() => setSettings({...settings, darkMode: !settings.darkMode})} className={`w-14 h-8 rounded-full transition-colors relative ${settings.darkMode ? 'bg-indigo-600' : 'bg-slate-200'}`}>
+                                        <div className={`absolute top-1 w-6 h-6 bg-white rounded-full transition-all ${settings.darkMode ? 'left-7' : 'left-1'}`} />
+                                    </button>
+                                </section>
+
+                                <section>
+                                    <button onClick={() => { Notification.requestPermission(); }} className="w-full py-5 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-600 font-black uppercase text-[11px] mb-4">Sync System Notifications</button>
+                                    <p className="text-[9px] text-slate-400 text-center font-bold uppercase leading-relaxed">Ensure Android Battery is set to 'Unrestricted' for pings.</p>
+                                </section>
                             </div>
                         </div>
                     )}
-
-                    <header className="mb-10 text-center relative flex flex-col items-center">
-                        <button onClick={triggerTest} className={`absolute right-0 top-0 text-[9px] font-black uppercase px-2 py-1 rounded-full ${notifStatus === 'granted' ? 'bg-green-50 text-green-600' : 'bg-indigo-50 text-indigo-600'}`}>
-                            {notifStatus === 'granted' ? 'Pings Active' : 'Sync Alarms'}
-                        </button>
-                        <img src="logo.png" className="header-logo mb-2" alt="Logo" />
-                        <h1 className="text-2xl font-black italic text-slate-900 leading-tight">Anchors.</h1>
-                    </header>
-
-                    <div className="tab-scroll-area mb-8">
-                        {Object.keys(collections).map(tab => (
-                            <button key={tab} onClick={() => setActiveTab(tab)} className={`px-6 py-3 rounded-full text-[11px] font-black uppercase border whitespace-nowrap ${activeTab === tab ? 'bg-indigo-600 text-white border-indigo-700 shadow-md' : 'bg-slate-100 text-slate-500 border-slate-200'}`}>{tab}</button>
-                        ))}
-                        <button onClick={() => setShowAddTab(true)} className="px-5 py-3 rounded-full bg-slate-200 text-slate-700 border border-slate-300 font-black flex-shrink-0">+</button>
-                    </div>
-
-                    <div className="mb-10 flex items-center gap-5 bg-white border border-slate-100 p-8 rounded-[3rem] shadow-sm">
-                        <div className="progress-container">
-                            <div className="progress-text">{Math.round(progress)}%</div>
-                            <svg width="80" height="80" viewBox="0 0 80 80" className="absolute -rotate-90">
-                                <circle cx="40" cy="40" r="34" fill="none" stroke="#f1f5f9" strokeWidth="6" />
-                                <circle cx="40" cy="40" r="34" fill="none" stroke="#6366f1" strokeWidth="6" strokeDasharray="213.6" strokeDashoffset={213.6 - (213.6 * progress) / 100} style={{transition: 'stroke-dashoffset 0.8s ease-out'}} />
-                            </svg>
-                        </div>
-                        <p className="text-3xl font-black italic text-slate-900 truncate uppercase">{activeTab}</p>
-                    </div>
-
-                    <form onSubmit={(e) => {
-                        e.preventDefault(); if(!text.trim()) return;
-                        setCollections({...collections, [activeTab]: [{id: Date.now().toString(), title: text, completed: false, reminderTime: null}, ...collections[activeTab]]});
-                        setText('');
-                    }} className="relative mb-10">
-                        <input className="w-full p-6 rounded-[2rem] bg-slate-50 border border-slate-100 outline-none font-bold text-lg placeholder:text-slate-300 text-center uppercase" placeholder="New trigger..." value={text} onChange={e => setText(e.target.value)} />
-                        <button className="absolute right-3 top-3 bottom-3 px-6 bg-indigo-600 text-white rounded-2xl font-black active:scale-95 transition-transform">＋</button>
-                    </form>
-
-                    <div ref={listRef} className="space-y-4 mb-10">
-                        {(collections[activeTab] || []).map(t => (
-                            <TaskCard key={t.id} task={t} 
-                                onComplete={(id, time) => {
-                                    const updated = collections[activeTab].map(item => item.id === id ? {...item, completed: true, confirmedAt: time} : item);
-                                    setCollections({...collections, [activeTab]: updated});
-                                }} 
-                                onDelete={id => setCollections({...collections, [activeTab]: collections[activeTab].filter(i => i.id !== id)})} 
-                                onUpdateReminder={(id, time) => {
-                                    const updated = collections[activeTab].map(item => item.id === id ? { ...item, reminderTime: time, lastPingedAt: null } : item);
-                                    setCollections({ ...collections, [activeTab]: updated });
-                                }} 
-                            />
-                        ))}
-                    </div>
-
-                    {/* RESTORED RESET BUTTON */}
-                    <button 
-                        onClick={resetConfirmed}
-                        className="w-full py-4 text-slate-400 font-black uppercase text-[10px] tracking-widest hover:text-indigo-600 transition-colors"
-                    >
-                        Reset All Task Progress
-                    </button>
                 </div>
             );
         }
