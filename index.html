@@ -12,7 +12,7 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <style>
-        /* DISABLING TEXT SELECTION GLOBALLY */
+        /* GLOBAL RESET & TEXT SELECTION DISABLE */
         * {
             -webkit-user-select: none;
             -moz-user-select: none;
@@ -28,34 +28,96 @@
             user-select: text;
         }
 
-        body { background: #FDFDFD; font-family: sans-serif; overflow-x: hidden; touch-action: pan-y; }
-        
-        /* Swipe Animations */
-        .swipe-card { transition: transform 0.1s ease-out, opacity 0.1s ease-out; will-change: transform, opacity; }
-        .swipe-card.resetting { transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease; }
+        body { 
+            background: #FDFDFD; 
+            font-family: sans-serif; 
+            overflow-x: hidden; 
+            touch-action: pan-y; 
+        }
 
-        .progress-fill { transition: width var(--hold-time) linear; }
-        .slide-up { animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
-        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-        
-        .tab-scroll-area { display: flex; overflow-x: auto; padding-bottom: 14px; gap: 12px; scrollbar-width: none; }
-        .tab-scroll-area::-webkit-scrollbar { display: none; }
-        
-        .header-logo { width: 100px; height: auto; transition: filter 0.3s ease; }
-        .dark-mode-logo { filter: invert(0.85); }
+        /* Swipe Card Mechanics */
+        .swipe-card { 
+            transition: transform 0.1s ease-out, opacity 0.1s ease-out; 
+            will-change: transform, opacity; 
+        }
+        .swipe-card.resetting { 
+            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease; 
+        }
 
-        .progress-container { width: 80px; height: 80px; position: relative; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-        .progress-text { position: absolute; font-size: 14px; font-weight: 900; z-index: 10; pointer-events: none; }
-        
-        .trigger-input { word-break: break-word; resize: none; min-height: 80px; }
-        .drag-handle { cursor: grab; padding: 4px; }
-        
+        /* Progress Fill Animation */
+        .progress-fill { 
+            transition: width var(--hold-time) linear; 
+        }
+
+        /* Slide Up Animation for Modals/Views */
+        .slide-up { 
+            animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1); 
+        }
+        @keyframes slideUp { 
+            from { transform: translateY(100%); } 
+            to { transform: translateY(0); } 
+        }
+
+        /* Custom Scrollbar Hiding */
+        .tab-scroll-area { 
+            display: flex; 
+            overflow-x: auto; 
+            padding-bottom: 14px; 
+            gap: 12px; 
+            scrollbar-width: none; 
+        }
+        .tab-scroll-area::-webkit-scrollbar { 
+            display: none; 
+        }
+
+        /* Logo & Appearance */
+        .header-logo { 
+            width: 100px; 
+            height: auto; 
+            transition: filter 0.3s ease; 
+        }
+        .dark-mode-logo { 
+            filter: invert(0.85); 
+        }
+
+        /* Circular Progress Styling */
+        .progress-container { 
+            width: 80px; 
+            height: 80px; 
+            position: relative; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            flex-shrink: 0; 
+        }
+        .progress-text { 
+            position: absolute; 
+            font-size: 14px; 
+            font-weight: 900; 
+            z-index: 10; 
+            pointer-events: none; 
+        }
+
+        /* Anchor Pulse Effect */
         @keyframes anchor-pulse {
             0% { transform: scale(1); }
             50% { transform: scale(0.98); }
             100% { transform: scale(1); }
         }
-        .anchoring-active { animation: anchor-pulse 0.5s infinite ease-in-out; }
+        .anchoring-active { 
+            animation: anchor-pulse 0.5s infinite ease-in-out; 
+        }
+
+        /* Trigger Input Handling */
+        .trigger-input { 
+            word-break: break-word; 
+            resize: none; 
+            min-height: 80px; 
+        }
+        .drag-handle { 
+            cursor: grab; 
+            padding: 4px; 
+        }
     </style>
 </head>
 <body class="transition-colors duration-300">
@@ -70,6 +132,13 @@
             { id: 'success', name: 'Success Sparkle', url: 'https://cdn.freesound.org/previews/270/270404_5123851-lq.mp3' },
             { id: 'pop', name: 'Soft Pop', url: 'https://cdn.freesound.org/previews/411/411642_5121236-lq.mp3' }
         ];
+
+        const INITIAL_DATA = {
+            "LEAVING": [{ id: 'l1', title: 'Phone, Wallet, Keys', completed: false, reminderTime: null }],
+            "WORKDAY": [{ id: 'w1', title: 'Check Email', completed: false, reminderTime: null }],
+            "BEDTIME": [{ id: 'b1', title: 'Doors Locked', completed: false, reminderTime: null }],
+            "SELF-CARE": [{ id: 's1', title: 'Mindful Minute', completed: false, reminderTime: null }]
+        };
 
         function TaskCard({ task, onComplete, onDelete, onUpdateReminder, settings }) {
             const [isHolding, setIsHolding] = useState(false);
@@ -128,7 +197,7 @@
                                 {task.completed && <span className="text-[10px] font-black text-indigo-600 uppercase mt-1 italic">Anchored at {task.confirmedAt}</span>}
                             </div>
                         </div>
-                        <button onClick={() => onDelete(task.id)} className="text-slate-300 font-bold p-2">✕</button>
+                        <button onClick={() => onDelete(task.id)} className="text-slate-300 font-bold p-2 text-xl leading-none">✕</button>
                     </div>
                     {!task.completed ? (
                         <button onMouseDown={startHold} onMouseUp={stopHold} onMouseLeave={stopHold} onTouchStart={startHold} onTouchEnd={stopHold} onContextMenu={(e) => e.preventDefault()}
@@ -146,41 +215,47 @@
         }
 
         function App() {
-            const [collections, setCollections] = useState(() => JSON.parse(localStorage.getItem('ocd_pwa_final')) || {
-                "LEAVING": [{ id: 'l1', title: 'Phone, Wallet, Keys', completed: false, reminderTime: null }],
-                "WORKDAY": [{ id: 'w1', title: 'Check Email', completed: false, reminderTime: null }],
-                "BEDTIME": [{ id: 'b1', title: 'Doors Locked', completed: false, reminderTime: null }],
-                "SELF-CARE": [{ id: 's1', title: 'Mindful Minute', completed: false, reminderTime: null }]
-            });
+            // LOAD PERSISTED DATA
+            const [collections, setCollections] = useState(() => JSON.parse(localStorage.getItem('ocd_pwa_final')) || INITIAL_DATA);
             const [settings, setSettings] = useState(() => JSON.parse(localStorage.getItem('ocd_settings')) || { holdTime: 2, darkMode: false, selectedAudio: AUDIO_OPTIONS[0].url });
             const [activeTab, setActiveTab] = useState(Object.keys(collections)[0] || "LEAVING");
+            
+            // UI STATE
             const [view, setView] = useState('main');
             const [text, setText] = useState('');
             const [showAddTab, setShowAddTab] = useState(false);
             const [newTabName, setNewTabName] = useState('');
-            const [dragOffset, setDragOffset] = useState(0);
-            const [isResetting, setIsResetting] = useState(false);
-            const [resetHolding, setResetHolding] = useState(false);
             const [isInstalled, setIsInstalled] = useState(true); 
             const [deferredPrompt, setDeferredPrompt] = useState(null);
 
+            // SWIPE & HOLD STATE
+            const [dragOffset, setDragOffset] = useState(0);
+            const [isResetting, setIsResetting] = useState(false);
+            const [resetHolding, setResetHolding] = useState(false);
+            
             const startX = useRef(0);
             const listRef = useRef(null);
             const resetTimerRef = useRef(null);
 
+            // EFFECT: Persistence & Dark Mode & Standalone Check
             useEffect(() => {
                 const standalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
                 setIsInstalled(standalone);
                 localStorage.setItem('ocd_pwa_final', JSON.stringify(collections));
                 localStorage.setItem('ocd_settings', JSON.stringify(settings));
                 document.body.className = settings.darkMode ? 'bg-slate-900 text-white' : 'bg-[#FDFDFD] text-slate-900';
-                window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); setDeferredPrompt(e); });
+                
+                const promptHandler = (e) => { e.preventDefault(); setDeferredPrompt(e); };
+                window.addEventListener('beforeinstallprompt', promptHandler);
+                return () => window.removeEventListener('beforeinstallprompt', promptHandler);
             }, [collections, settings]);
 
+            // EFFECT: SortableJS Integration
             useEffect(() => {
                 if (listRef.current && view === 'main') {
                     const sortable = Sortable.create(listRef.current, {
-                        handle: '.drag-handle', animation: 150,
+                        handle: '.drag-handle',
+                        animation: 150,
                         onEnd: (evt) => {
                             const newItems = [...collections[activeTab]];
                             const [moved] = newItems.splice(evt.oldIndex, 1);
@@ -192,40 +267,60 @@
                 }
             }, [activeTab, view, collections]);
 
+            // EFFECT: Background Ping Engine
             useEffect(() => {
                 const checkAlarms = setInterval(() => {
                     const now = new Date();
                     const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
                     let dataChanged = false;
-                    const newCollections = { ...collections };
-                    Object.keys(newCollections).forEach(tab => {
-                        newCollections[tab] = newCollections[tab].map(task => {
+                    const newCols = { ...collections };
+                    
+                    Object.keys(newCols).forEach(tab => {
+                        newCols[tab] = newCols[tab].map(task => {
                             if (task.reminderTime === currentTime && !task.completed && !task.lastPingedAt) {
                                 if (Notification.permission === "granted" && navigator.serviceWorker.controller) {
-                                    navigator.serviceWorker.controller.postMessage({ type: 'SHOW_NOTIFICATION', title: 'OCD Anchor', body: task.title });
+                                    navigator.serviceWorker.controller.postMessage({ 
+                                        type: 'SHOW_NOTIFICATION', 
+                                        title: 'OCD Anchor', 
+                                        body: task.title 
+                                    });
                                 }
-                                dataChanged = true; return { ...task, lastPingedAt: currentTime };
+                                dataChanged = true;
+                                return { ...task, lastPingedAt: currentTime };
                             }
-                            if (task.lastPingedAt && task.lastPingedAt !== currentTime) return { ...task, lastPingedAt: null };
+                            if (task.lastPingedAt && task.lastPingedAt !== currentTime) {
+                                return { ...task, lastPingedAt: null };
+                            }
                             return task;
                         });
                     });
-                    if (dataChanged) setCollections(newCollections);
+                    if (dataChanged) setCollections(newCols);
                 }, 10000);
                 return () => clearInterval(checkAlarms);
             }, [collections]);
 
-            const handleTouchStart = (e) => { startX.current = e.touches[0].clientX; setIsResetting(false); };
-            const handleTouchMove = (e) => { setDragOffset((e.touches[0].clientX - startX.current) * 0.85); };
+            // HANDLER: Swipe Logic
+            const handleTouchStart = (e) => { 
+                startX.current = e.touches[0].clientX; 
+                setIsResetting(false); 
+            };
+            const handleTouchMove = (e) => { 
+                setDragOffset((e.touches[0].clientX - startX.current) * 0.85); 
+            };
             const handleTouchEnd = () => {
                 const tabs = Object.keys(collections);
                 const currentIndex = tabs.indexOf(activeTab);
                 setIsResetting(true);
-                if (dragOffset < -110 && currentIndex < tabs.length - 1) setActiveTab(tabs[currentIndex + 1]);
-                else if (dragOffset > 110 && currentIndex > 0) setActiveTab(tabs[currentIndex - 1]);
+                
+                if (dragOffset < -110 && currentIndex < tabs.length - 1) {
+                    setActiveTab(tabs[currentIndex + 1]);
+                } else if (dragOffset > 110 && currentIndex > 0) {
+                    setActiveTab(tabs[currentIndex - 1]);
+                }
                 setDragOffset(0);
             };
 
+            // HANDLER: 3s Reset Logic
             const startResetHold = () => {
                 setResetHolding(true);
                 resetTimerRef.current = setTimeout(() => {
@@ -235,19 +330,23 @@
                     if (navigator.vibrate) navigator.vibrate(100);
                 }, 3000);
             };
-            const cancelResetHold = () => { setResetHolding(false); clearTimeout(resetTimerRef.current); };
+            const cancelResetHold = () => { 
+                setResetHolding(false); 
+                clearTimeout(resetTimerRef.current); 
+            };
 
             const progress = (collections[activeTab]?.filter(t => t.completed).length / (collections[activeTab]?.length || 1) * 100) || 0;
 
+            // VIEW: GATEKEEPER (Requires Install)
             if (!isInstalled) {
                 return (
                     <div id="gatekeeper" className={`min-h-screen flex flex-col items-center justify-center text-center p-10 ${settings.darkMode ? 'bg-slate-900 text-white' : 'bg-[#FDFDFD] text-slate-900'}`}>
                         <img src="logo.png" className={`w-40 mb-10 ${settings.darkMode ? 'dark-mode-logo' : ''}`} alt="Logo" />
-                        <h2 className="text-2xl font-black italic mb-2 uppercase text-center">App Required.</h2>
-                        <p className="text-slate-500 text-sm font-bold uppercase tracking-widest mb-10 px-6 leading-relaxed text-center">Standalone version required for background pings.</p>
+                        <h2 className="text-2xl font-black italic mb-2 uppercase">App Required.</h2>
+                        <p className="text-slate-500 text-sm font-bold uppercase tracking-widest mb-10 px-6 leading-relaxed">Standalone version required for background pings.</p>
                         {deferredPrompt ? (
                             <button onClick={() => { Notification.requestPermission(); deferredPrompt.prompt(); }} className="bg-indigo-600 text-white w-full max-w-xs py-5 rounded-[2rem] text-xs font-black uppercase shadow-2xl">Download & Install</button>
-                        ) : ( <p className="text-[10px] text-slate-400 uppercase font-bold text-center">Tap ⋮ (Top Right) > Install App</p> )}
+                        ) : ( <p className="text-[10px] text-slate-400 uppercase font-bold">Tap ⋮ (Top Right) > Install App</p> )}
                     </div>
                 );
             }
@@ -256,6 +355,7 @@
                 <div className={`max-w-md mx-auto min-h-screen pt-12 px-6 pb-20 transition-colors duration-300 ${settings.darkMode ? 'text-white' : 'text-slate-900'}`}>
                     {view === 'main' ? (
                         <>
+                            {/* MODAL: Add New Collection */}
                             {showAddTab && (
                                 <div className="fixed inset-0 bg-slate-900/60 z-50 flex items-end justify-center p-4 backdrop-blur-sm">
                                     <div className={`${settings.darkMode ? 'bg-slate-800' : 'bg-white'} w-full rounded-[3rem] p-8 shadow-2xl slide-up border ${settings.darkMode ? 'border-slate-700' : 'border-slate-300'}`}>
@@ -270,21 +370,23 @@
                                 </div>
                             )}
 
-                            <header className="mb-10 text-center">
+                            {/* HEADER: Stability Grid */}
+                            <header className="mb-10">
                                 <div className="grid grid-cols-3 items-center w-full">
                                     <div className="w-10"></div>
                                     <div className="flex justify-center">
                                         <img src="logo.png" className={`header-logo ${settings.darkMode ? 'dark-mode-logo' : ''}`} alt="Logo" />
                                     </div>
                                     <div className="flex justify-end">
-                                        <button onClick={() => setView('settings')} className="p-2 text-slate-400 hover:text-indigo-600">
-                                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+                                        <button onClick={() => setView('settings')} className="w-10 h-10 flex items-center justify-center text-3xl opacity-50 active:opacity-100 transition-opacity" style={{ transform: 'translateY(-2px)' }}>
+                                            ⚙
                                         </button>
                                     </div>
                                 </div>
                                 <h2 className="text-[10px] font-black tracking-[0.2em] opacity-60 uppercase mt-4 mb-4 italic text-center">Obsessively Compulsed Daily.</h2>
                             </header>
 
+                            {/* TABS LIST */}
                             <div className="tab-scroll-area mb-8">
                                 {Object.keys(collections).map(tab => (
                                     <button key={tab} onClick={() => setActiveTab(tab)} className={`px-6 py-3 rounded-full text-[11px] font-black uppercase border whitespace-nowrap transition-all ${activeTab === tab ? 'bg-indigo-600 text-white border-indigo-700 shadow-md scale-105' : (settings.darkMode ? 'bg-slate-800 text-slate-500 border-slate-700' : 'bg-slate-100 text-slate-500 border-slate-200')}`}>{tab}</button>
@@ -292,6 +394,7 @@
                                 <button onClick={() => setShowAddTab(true)} className={`px-5 py-3 rounded-full border font-black flex-shrink-0 ${settings.darkMode ? 'bg-slate-800 text-slate-400 border-slate-700' : 'bg-slate-200 text-slate-700 border-slate-300'}`}>+</button>
                             </div>
 
+                            {/* MAIN SWIPE CARD */}
                             <div onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}
                                 style={{ transform: `translateX(${dragOffset}px)`, opacity: 1 - Math.abs(dragOffset / 400) }}
                                 className={`swipe-card mb-10 flex items-center gap-5 border p-8 rounded-[3rem] shadow-sm ${isResetting ? 'resetting' : ''} ${settings.darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-100'}`}>
@@ -305,15 +408,17 @@
                                 <p className="text-3xl font-black italic truncate uppercase select-none">{activeTab}</p>
                             </div>
 
+                            {/* NEW TASK FORM */}
                             <form onSubmit={(e) => {
                                 e.preventDefault(); if(!text.trim()) return;
                                 setCollections({...collections, [activeTab]: [{id: Date.now().toString(), title: text, completed: false, reminderTime: null}, ...collections[activeTab]]});
                                 setText('');
                             }} className="relative mb-10">
                                 <textarea className={`trigger-input w-full p-6 pr-20 rounded-[2rem] border outline-none font-bold text-lg placeholder:text-slate-300 uppercase leading-tight ${settings.darkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-100'}`} placeholder="New trigger..." value={text} onChange={e => setText(e.target.value)} />
-                                <button className="absolute right-3 top-1/2 -translate-y-1/2 w-14 h-14 bg-indigo-600 text-white rounded-2xl font-black active:scale-95 transition-transform flex items-center justify-center text-2xl">＋</button>
+                                <button className="absolute right-3 top-1/2 -translate-y-1/2 w-14 h-14 bg-indigo-600 text-white rounded-2xl font-black shadow-lg flex items-center justify-center text-2xl active:scale-95 transition-transform">＋</button>
                             </form>
 
+                            {/* TASK LIST */}
                             <div ref={listRef} className="space-y-4 mb-10">
                                 {(collections[activeTab] || []).map(t => (
                                     <TaskCard key={t.id} task={t} settings={settings} 
@@ -330,6 +435,7 @@
                                 ))}
                             </div>
 
+                            {/* 3s RESET BUTTON */}
                             <button onMouseDown={startResetHold} onMouseUp={cancelResetHold} onTouchStart={startResetHold} onTouchEnd={cancelResetHold} onContextMenu={(e) => e.preventDefault()} className="relative w-full py-5 rounded-[2rem] overflow-hidden border transition-all active:scale-95 border-slate-200 mt-10">
                                 <div className={`absolute left-0 top-0 h-full bg-red-600 opacity-20 ${resetHolding ? 'progress-fill' : ''}`} style={{ width: resetHolding ? '100%' : '0%', transitionDuration: '3000ms' }} />
                                 <span className="relative z-10 text-[10px] font-black uppercase tracking-widest text-slate-400 italic">
@@ -338,6 +444,7 @@
                             </button>
                         </>
                     ) : (
+                        /* VIEW: SETTINGS */
                         <div className="settings-view slide-up">
                             <header className="flex items-center justify-between mb-12">
                                 <h2 className="text-3xl font-black italic uppercase">Options</h2>
@@ -386,8 +493,18 @@
             );
         }
 
-        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
-        if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').then(reg => reg.update()); }); }
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+
+        // SERVICE WORKER REGISTRATION
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js').then(reg => {
+                    console.log('SW Registered');
+                    reg.update();
+                }).catch(err => console.log('SW Error:', err));
+            });
+        }
     </script>
 </body>
 </html>
