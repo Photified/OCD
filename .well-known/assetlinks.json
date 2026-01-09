@@ -1,10 +1,8 @@
 [{
-  "relation": ["delegate_permission/common.handle_all_urls"],
-  "target": {
-    "namespace": "android_app",
-    "package_name": "YOUR_PACKAGE_NAME_HERE",
-    "sha256_cert_fingerprints": [
-      "YOUR_SHA256_FINGERPRINT_HERE"
-    ]
-  }
-}]
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "io.github.photified.twa",
+        "sha256_cert_fingerprints": ["39:F5:8C:DB:4B:43:DE:9C:26:3A:71:75:87:CD:23:D5:6D:F8:1B:25:C3:55:F8:E2:6A:D1:BC:A6:2B:A7:D6:79"]
+      }
+    }]
