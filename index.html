@@ -15,15 +15,8 @@
         body { background: #FDFDFD; font-family: sans-serif; overflow-x: hidden; }
         .progress-fill { transition: width 3s linear; }
         #gatekeeper {
-            position: fixed;
-            inset: 0;
-            background: #FDFDFD;
-            z-index: 9999;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 2rem;
+            position: fixed; inset: 0; background: #FDFDFD; z-index: 9999;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem;
         }
         .tab-scroll-area { display: flex; overflow-x: auto; padding-bottom: 14px; gap: 12px; scrollbar-width: none; }
         .tab-scroll-area::-webkit-scrollbar { display: none; }
@@ -66,11 +59,19 @@
                             {!task.completed && (
                                 <div className="flex items-center gap-2 mt-1">
                                     <span className="text-[10px] font-black text-indigo-400 uppercase">Ping:</span>
-                                    <input type="time" value={task.reminderTime || ""} onChange={(e) => onUpdateReminder(task.id, e.target.value)} className="text-[10px] font-bold bg-slate-100 rounded px-1 outline-none border-none"/>
+                                    <input 
+                                        type="time" 
+                                        value={task.reminderTime || ""} 
+                                        onChange={(e) => {
+                                            if (Notification.permission !== "granted") Notification.requestPermission();
+                                            onUpdateReminder(task.id, e.target.value);
+                                        }} 
+                                        className="text-[10px] font-bold bg-slate-100 rounded px-1 outline-none border-none"
+                                    />
                                 </div>
                             )}
                         </div>
-                        <button onClick={() => onDelete(task.id)} className="text-slate-300 font-bold">✕</button>
+                        <button onClick={() => onDelete(task.id)} className="text-slate-300 font-bold p-2">✕</button>
                     </div>
                     {!task.completed ? (
                         <button onMouseDown={startHold} onMouseUp={cancelHold} onTouchStart={startHold} onTouchEnd={cancelHold} className="relative w-full py-5 bg-slate-50 rounded-2xl overflow-hidden border border-slate-100">
@@ -107,7 +108,7 @@
                 });
             }, [collections]);
 
-            // Robust Ping Engine
+            // Alarm Logic
             useEffect(() => {
                 const checkAlarms = setInterval(() => {
                     const now = new Date();
@@ -118,21 +119,16 @@
                     Object.keys(newCollections).forEach(tab => {
                         newCollections[tab] = newCollections[tab].map(task => {
                             if (task.reminderTime === currentTime && !task.completed && !task.lastPingedAt) {
-                                // Request permission if not already granted
-                                if (Notification.permission === "default") {
-                                    Notification.requestPermission();
-                                }
                                 if (Notification.permission === "granted") {
-                                    new Notification("OCD Anchor Reminder", { 
-                                        body: `Confirming: ${task.title}`,
+                                    new Notification("OCD Anchor", { 
+                                        body: `Time to confirm: ${task.title}`,
                                         icon: 'icon.png',
-                                        badge: 'icon.png'
+                                        vibrate: [200, 100, 200]
                                     });
                                 }
                                 dataChanged = true;
                                 return { ...task, lastPingedAt: currentTime };
                             }
-                            // Reset ping for the next day
                             if (task.lastPingedAt && task.lastPingedAt !== currentTime) {
                                 return { ...task, lastPingedAt: null };
                             }
@@ -144,9 +140,19 @@
                 return () => clearInterval(checkAlarms);
             }, [collections]);
 
+            const sendTestPing = () => {
+                if (Notification.permission !== "granted") {
+                    Notification.requestPermission().then(permission => {
+                        if (permission === "granted") new Notification("Test Ping Active");
+                    });
+                } else {
+                    new Notification("Test Ping Active", { body: "Your alarms are working." });
+                }
+            };
+
             const handleInstall = async () => {
                 if (!deferredPrompt) {
-                    alert("Please use Chrome Menu > Install App");
+                    alert("Chrome: Tap ⋮ (top right) then 'Install app'.");
                     return;
                 }
                 deferredPrompt.prompt();
@@ -159,13 +165,13 @@
             if (!isInstalled) {
                 return (
                     <div id="gatekeeper">
-                        <img src="logo.png" className="w-48 mb-8" alt="OCD Logo" />
+                        <img src="logo.png" className="w-48 mb-10" alt="OCD Logo" />
                         <h2 className="text-2xl font-black italic text-slate-900 mb-2">App Required.</h2>
                         <p className="text-slate-500 text-sm font-bold uppercase tracking-widest mb-10 px-6 leading-relaxed">
-                            For alarm pings and anchors to work, you must install the app.
+                            Alarms only work in the app version.
                         </p>
                         <button onClick={handleInstall} className="bg-indigo-600 text-white w-full max-w-xs py-5 rounded-[2rem] text-xs font-black uppercase shadow-2xl">
-                            Download & Install
+                            Install App
                         </button>
                     </div>
                 );
@@ -173,8 +179,14 @@
 
             return (
                 <div className="max-w-md mx-auto min-h-screen pt-12 px-6 pb-20">
-                    <header className="mb-10 text-center flex flex-col items-center">
-                        <img src="logo.png" className="w-40 mb-4" alt="OCD Logo" />
+                    <header className="mb-10 text-center relative">
+                        <img src="logo.png" className="w-32 mx-auto mb-4" alt="OCD Logo" />
+                        <button 
+                            onClick={sendTestPing} 
+                            className="absolute right-0 top-0 text-[10px] font-black text-indigo-600 uppercase bg-indigo-50 px-3 py-1 rounded-full"
+                        >
+                            Test Ping
+                        </button>
                         <h1 className="text-2xl font-black italic text-slate-900">Anchors.</h1>
                     </header>
 
