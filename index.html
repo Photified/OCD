@@ -98,7 +98,7 @@
                 timerRef.current = setTimeout(() => {
                     onComplete(task.id, new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
                     stopHold();
-                    if (navigator.vibrate) navigator.vibrate(120);
+                    if (navigator.vibrate) navigator.vibrate(120); 
                     audioRef.current.currentTime = 0;
                     audioRef.current.play();
                 }, holdDuration);
@@ -149,7 +149,8 @@
             const [collections, setCollections] = useState(() => JSON.parse(localStorage.getItem('ocd_pwa_final')) || {
                 "LEAVING": [{ id: 'l1', title: 'Phone, Wallet, Keys', completed: false, reminderTime: null }],
                 "WORKDAY": [{ id: 'w1', title: 'Check Email', completed: false, reminderTime: null }],
-                "BEDTIME": [{ id: 'b1', title: 'Doors Locked', completed: false, reminderTime: null }]
+                "BEDTIME": [{ id: 'b1', title: 'Doors Locked', completed: false, reminderTime: null }],
+                "SELF-CARE": [{ id: 's1', title: 'Mindful Minute', completed: false, reminderTime: null }]
             });
             const [settings, setSettings] = useState(() => JSON.parse(localStorage.getItem('ocd_settings')) || { holdTime: 2, darkMode: false, selectedAudio: AUDIO_OPTIONS[0].url });
             const [activeTab, setActiveTab] = useState(Object.keys(collections)[0] || "LEAVING");
@@ -196,9 +197,9 @@
                     const now = new Date();
                     const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
                     let dataChanged = false;
-                    const newCols = { ...collections };
-                    Object.keys(newCols).forEach(tab => {
-                        newCols[tab] = newCols[tab].map(task => {
+                    const newCollections = { ...collections };
+                    Object.keys(newCollections).forEach(tab => {
+                        newCollections[tab] = newCollections[tab].map(task => {
                             if (task.reminderTime === currentTime && !task.completed && !task.lastPingedAt) {
                                 if (Notification.permission === "granted" && navigator.serviceWorker.controller) {
                                     navigator.serviceWorker.controller.postMessage({ type: 'SHOW_NOTIFICATION', title: 'OCD Anchor', body: task.title });
@@ -209,7 +210,7 @@
                             return task;
                         });
                     });
-                    if (dataChanged) setCollections(newCols);
+                    if (dataChanged) setCollections(newCollections);
                 }, 10000);
                 return () => clearInterval(checkAlarms);
             }, [collections]);
@@ -242,11 +243,11 @@
                 return (
                     <div id="gatekeeper" className={`min-h-screen flex flex-col items-center justify-center text-center p-10 ${settings.darkMode ? 'bg-slate-900 text-white' : 'bg-[#FDFDFD] text-slate-900'}`}>
                         <img src="logo.png" className={`w-40 mb-10 ${settings.darkMode ? 'dark-mode-logo' : ''}`} alt="Logo" />
-                        <h2 className="text-2xl font-black italic mb-2 uppercase">App Required.</h2>
-                        <p className="text-slate-500 text-sm font-bold uppercase tracking-widest mb-10 px-6 leading-relaxed">Standalone version required for background pings.</p>
+                        <h2 className="text-2xl font-black italic mb-2 uppercase text-center">App Required.</h2>
+                        <p className="text-slate-500 text-sm font-bold uppercase tracking-widest mb-10 px-6 leading-relaxed text-center">Standalone version required for background pings.</p>
                         {deferredPrompt ? (
                             <button onClick={() => { Notification.requestPermission(); deferredPrompt.prompt(); }} className="bg-indigo-600 text-white w-full max-w-xs py-5 rounded-[2rem] text-xs font-black uppercase shadow-2xl">Download & Install</button>
-                        ) : ( <p className="text-[10px] text-slate-400 uppercase font-bold">Tap ⋮ (Top Right) > Install App</p> )}
+                        ) : ( <p className="text-[10px] text-slate-400 uppercase font-bold text-center">Tap ⋮ (Top Right) > Install App</p> )}
                     </div>
                 );
             }
@@ -269,8 +270,8 @@
                                 </div>
                             )}
 
-                            <header className="mb-10 text-center relative">
-                                <div className="grid grid-cols-3 items-center w-full px-1">
+                            <header className="mb-10 text-center">
+                                <div className="grid grid-cols-3 items-center w-full">
                                     <div className="w-10"></div>
                                     <div className="flex justify-center">
                                         <img src="logo.png" className={`header-logo ${settings.darkMode ? 'dark-mode-logo' : ''}`} alt="Logo" />
