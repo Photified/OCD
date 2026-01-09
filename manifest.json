@@ -1,11 +1,17 @@
 {
   "name": "Obsessively Compulsed Daily",
   "short_name": "OCD",
+  "description": "A focused daily anchoring tool for task management and habit tracking.",
+  "id": "/OCD/",
   "start_url": "/OCD/index.html",
   "scope": "/OCD/",
   "display": "standalone",
   "background_color": "#FDFDFD",
   "theme_color": "#4f46e5",
+  "orientation": "portrait",
+  "categories": ["lifestyle", "utilities"],
+  "lang": "en-US",
+  "dir": "ltr",
   "icons": [
     {
       "src": "icon.png",
@@ -17,6 +23,22 @@
       "src": "icon.png",
       "sizes": "512x512",
       "type": "image/png"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "screenshot1.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "label": "Main Task View",
+      "platform": "narrow"
+    },
+    {
+      "src": "screenshot2.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "label": "Settings and Customization",
+      "platform": "narrow"
     }
   ]
 }
