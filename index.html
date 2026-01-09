@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>OCD - Daily Anchors</title>
+    <title>Obsessively Compulsed Daily</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#FDFDFD">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -12,16 +12,14 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <style>
-        /* DISABLING TEXT SELECTION GLOBALLY */
         * {
-            -webkit-user-select: none; /* Safari/Chrome/iOS */
-            -moz-user-select: none;    /* Firefox */
-            -ms-user-select: none;     /* IE/Edge */
-            user-select: none;         /* Standard */
-            -webkit-touch-callout: none; /* Disables long-press context menu on iOS */
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
         }
 
-        /* Re-enable selection for inputs so you can still type */
         input, textarea {
             -webkit-user-select: text;
             user-select: text;
@@ -33,7 +31,11 @@
         @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
         .tab-scroll-area { display: flex; overflow-x: auto; padding-bottom: 14px; gap: 12px; scrollbar-width: none; }
         .tab-scroll-area::-webkit-scrollbar { display: none; }
-        .header-logo { width: 120px; height: auto; object-fit: contain; }
+        .header-logo { width: 120px; height: auto; object-fit: contain; transition: filter 0.3s ease; }
+        
+        /* This inverts the black logo to a soft light grey instead of pure white */
+        .dark-mode-logo { filter: invert(0.85); }
+
         .progress-container { width: 80px; height: 80px; position: relative; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
         .progress-text { position: absolute; font-size: 14px; font-weight: 900; z-index: 10; pointer-events: none; }
         .drag-handle { cursor: grab; padding: 4px; }
@@ -151,7 +153,7 @@
                         newCollections[tab] = newCollections[tab].map(task => {
                             if (task.reminderTime === currentTime && !task.completed && !task.lastPingedAt) {
                                 if (Notification.permission === "granted" && navigator.serviceWorker.controller) {
-                                    navigator.serviceWorker.controller.postMessage({ type: 'SHOW_NOTIFICATION', title: 'OCD Anchor', body: task.title });
+                                    navigator.serviceWorker.controller.postMessage({ type: 'SHOW_NOTIFICATION', title: 'Obsessively Compulsed Daily', body: task.title });
                                 }
                                 dataChanged = true; return { ...task, lastPingedAt: currentTime };
                             }
@@ -180,10 +182,10 @@
 
             if (!isInstalled) {
                 return (
-                    <div id="gatekeeper" className={settings.darkMode ? 'bg-slate-900' : 'bg-[#FDFDFD]'}>
-                        <img src="logo.png" className="w-40 mb-10" alt="Logo" />
+                    <div id="gatekeeper" className={`min-h-screen flex flex-col items-center justify-center text-center p-10 ${settings.darkMode ? 'bg-slate-900 text-white' : 'bg-[#FDFDFD] text-slate-900'}`}>
+                        <img src="logo.png" className={`w-40 mb-10 ${settings.darkMode ? 'dark-mode-logo' : ''}`} alt="Logo" />
                         <h2 className="text-2xl font-black italic mb-2">App Required.</h2>
-                        <p className="text-slate-500 text-sm font-bold uppercase tracking-widest mb-10 px-6 leading-relaxed text-center text-center">Standalone version required for background pings.</p>
+                        <p className="text-slate-500 text-sm font-bold uppercase tracking-widest mb-10 px-6 leading-relaxed">Standalone version required for background pings.</p>
                         {deferredPrompt ? (
                             <button onClick={() => { Notification.requestPermission(); deferredPrompt.prompt(); }} className="bg-indigo-600 text-white w-full max-w-xs py-5 rounded-[2rem] text-xs font-black uppercase shadow-2xl">Download & Install</button>
                         ) : ( <p className="text-[10px] text-slate-400 uppercase font-bold">Tap ⋮ (Top Right) > Install App</p> )}
@@ -213,8 +215,8 @@
                                 <button onClick={() => setView('settings')} className="absolute right-0 top-0 p-2 text-slate-400 hover:text-indigo-600">
                                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
                                 </button>
-                                <img src="logo.png" className="header-logo mb-2" alt="Logo" />
-                                <h1 className="text-2xl font-black italic leading-tight">Anchors.</h1>
+                                <img src="logo.png" className={`header-logo mb-2 ${settings.darkMode ? 'dark-mode-logo' : ''}`} alt="Logo" />
+                                <h1 className="text-xl font-black italic leading-tight uppercase">Obsessively<br/>Compulsed Daily.</h1>
                             </header>
 
                             <div className="tab-scroll-area mb-8">
