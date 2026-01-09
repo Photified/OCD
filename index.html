@@ -12,6 +12,22 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <style>
+        /* DISABLING TEXT SELECTION GLOBALLY */
+        * {
+            -webkit-user-select: none; /* Safari/Chrome/iOS */
+            -moz-user-select: none;    /* Firefox */
+            -ms-user-select: none;     /* IE/Edge */
+            user-select: none;         /* Standard */
+            -webkit-touch-callout: none; /* Disables long-press context menu on iOS */
+        }
+
+        /* Re-enable selection for inputs so you can still type */
+        input, textarea {
+            -webkit-user-select: text;
+            user-select: text;
+        }
+
+        body { background: #FDFDFD; font-family: sans-serif; overflow-x: hidden; }
         .progress-fill { transition: width var(--hold-time) linear; }
         .slide-up { animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
         @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
@@ -41,7 +57,7 @@
             const timerRef = useRef(null);
             const holdDuration = settings.holdTime * 1000;
 
-            const startHold = () => {
+            const startHold = (e) => {
                 if (task.completed) return;
                 setIsHolding(true);
                 timerRef.current = setTimeout(() => {
@@ -55,7 +71,7 @@
 
             return (
                 <div className={`task-item mb-3 p-6 rounded-[2.5rem] border shadow-sm transition-all duration-500 ${settings.darkMode ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-200'}`}>
-                    <div className="flex justify-between items-start mb-2 px-1">
+                    <div className="flex justify-between items-start mb-2 px-1 text-inherit">
                         <div className="flex items-center gap-4">
                             <div className="drag-handle text-slate-400">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/></svg>
@@ -74,7 +90,7 @@
                         <button onClick={() => onDelete(task.id)} className="text-slate-300 font-bold p-2">✕</button>
                     </div>
                     {!task.completed ? (
-                        <button onMouseDown={startHold} onMouseUp={cancelHold} onTouchStart={startHold} onTouchEnd={cancelHold} className={`relative w-full py-5 rounded-2xl overflow-hidden border ${settings.darkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-100'}`}>
+                        <button onMouseDown={startHold} onMouseUp={cancelHold} onTouchStart={startHold} onTouchEnd={cancelHold} onContextMenu={(e) => e.preventDefault()} className={`relative w-full py-5 rounded-2xl overflow-hidden border ${settings.darkMode ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-100'}`}>
                             <div className={`absolute left-0 top-0 h-full bg-indigo-600 opacity-20 ${isHolding ? 'progress-fill' : ''}`} style={{ width: isHolding ? '100%' : '0%', transitionDuration: `${holdDuration}ms` }} />
                             <span className="relative z-10 text-[11px] font-black uppercase text-slate-500 italic">Hold {settings.holdTime}s to Confirm</span>
                         </button>
@@ -91,7 +107,7 @@
             const [collections, setCollections] = useState(() => JSON.parse(localStorage.getItem('ocd_pwa_final')) || INITIAL_DATA);
             const [settings, setSettings] = useState(() => JSON.parse(localStorage.getItem('ocd_settings')) || { holdTime: 3, darkMode: false });
             const [activeTab, setActiveTab] = useState(Object.keys(collections)[0]);
-            const [view, setView] = useState('main'); // 'main' or 'settings'
+            const [view, setView] = useState('main');
             const [text, setText] = useState('');
             const [showAddTab, setShowAddTab] = useState(false);
             const [newTabName, setNewTabName] = useState('');
@@ -240,7 +256,7 @@
                                 ))}
                             </div>
 
-                            <button onMouseDown={startResetHold} onMouseUp={cancelResetHold} onTouchStart={startResetHold} onTouchEnd={cancelResetHold} className="relative w-full py-5 rounded-[2rem] overflow-hidden border transition-all active:scale-95 border-slate-200">
+                            <button onMouseDown={startResetHold} onMouseUp={cancelResetHold} onTouchStart={startResetHold} onTouchEnd={cancelResetHold} onContextMenu={(e) => e.preventDefault()} className="relative w-full py-5 rounded-[2rem] overflow-hidden border transition-all active:scale-95 border-slate-200">
                                 <div className={`absolute left-0 top-0 h-full bg-red-600 opacity-20 ${resetHolding ? 'progress-fill' : ''}`} style={{ width: resetHolding ? '100%' : '0%', transitionDuration: '3000ms' }} />
                                 <span className="relative z-10 text-[10px] font-black uppercase tracking-widest text-slate-400 italic">
                                     {resetHolding ? 'Holding to Reset...' : 'Hold 3s to Reset Progress'}
