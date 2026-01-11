@@ -1,14 +1,11 @@
-// Force immediate activation so the APK doesn't run an old version of the worker
 self.addEventListener('install', (e) => {
-  self.skipWaiting();
+  self.skipWaiting(); // Force the new version to install immediately
 });
 
 self.addEventListener('activate', (e) => {
-  // Take control of all pages immediately to ensure the heartbeat starts
-  e.waitUntil(clients.claim());
+  e.waitUntil(clients.claim()); // Take control of the app immediately
 });
 
-// Handles opening the app when the user taps a "ping"
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   event.waitUntil(
@@ -19,11 +16,11 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-// Main logic for pings triggered by the app's internal timer
+// CORE PING HANDLER
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SHOW_NOTIFICATION') {
     self.registration.showNotification(event.data.title, {
-      body: event.data.body, 
+      body: event.data.body,
       icon: 'icon.png',
       badge: 'icon.png',
       vibrate: [200, 100, 200],
@@ -33,34 +30,11 @@ self.addEventListener('message', (event) => {
   }
 });
 
-// Standard Push handler: Required for Android system compatibility
+// Essential for APK compatibility
 self.addEventListener('push', (event) => {
-  let data = { title: 'OCD Anchor', body: 'Time to check in.' };
-  try {
-    if (event.data) data = event.data.json();
-  } catch (e) {
-    if (event.data) data.body = event.data.text();
-  }
-  
+  const data = event.data ? event.data.json() : { title: 'OCD Anchor', body: 'Reminder' };
   self.registration.showNotification(data.title, {
     body: data.body,
-    icon: 'icon.png',
-    badge: 'icon.png',
-    vibrate: [200, 100, 200],
-    tag: 'ocd-anchor',
-    renotify: true
+    icon: 'icon.png'
   });
 });
-
-/** * BACKGROUND HEARTBEAT
- * This is the critical part for your closed APK.
- * It tries to prevent the OS from killing the background process.
- */
-const backgroundHeartbeat = () => {
-  // Performing a small internal fetch helps keep the SW "active" in Android's eyes
-  console.log("OCD Heartbeat: Background check active.");
-  setTimeout(backgroundHeartbeat, 60000); 
-};
-
-// Start the heartbeat loop
-backgroundHeartbeat();
