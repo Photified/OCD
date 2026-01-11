@@ -30,11 +30,21 @@ self.addEventListener('message', (event) => {
   }
 });
 
-// Add this to sw.js to handle background push events
+// Standard Push handler (Required for APK system compatibility)
 self.addEventListener('push', (event) => {
-  const data = event.data.json();
+  let data = { title: 'OCD Anchor', body: 'Time to check in.' };
+  try {
+    if (event.data) data = event.data.json();
+  } catch (e) {
+    if (event.data) data.body = event.data.text();
+  }
+  
   self.registration.showNotification(data.title, {
     body: data.body,
-    icon: 'icon.png'
+    icon: 'icon.png',
+    badge: 'icon.png',
+    vibrate: [200, 100, 200],
+    tag: 'ocd-anchor',
+    renotify: true
   });
 });
